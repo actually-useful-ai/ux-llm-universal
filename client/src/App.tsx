@@ -10,6 +10,8 @@ import { ToolProvider } from "./contexts/ToolContext";
 import { ConversationProvider } from "./contexts/ConversationContext";
 import { JobProvider } from "./contexts/JobContext";
 import { ArtifactProvider } from "./contexts/ArtifactContext";
+import { OfflineQueueProvider } from "./contexts/OfflineQueueContext";
+import { PromptChainProvider } from "./contexts/PromptChainContext";
 import AppShell from "./components/AppShell";
 
 // Lazy-loaded pages
@@ -62,8 +64,12 @@ function App() {
                 <ConversationProvider>
                   <JobProvider>
                     <ArtifactProvider>
-                      <Toaster />
-                      <AppRouter />
+                      <OfflineQueueProvider>
+                        <PromptChainProvider>
+                          <Toaster />
+                          <AppRouter />
+                        </PromptChainProvider>
+                      </OfflineQueueProvider>
                     </ArtifactProvider>
                   </JobProvider>
                 </ConversationProvider>

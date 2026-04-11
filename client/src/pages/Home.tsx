@@ -116,15 +116,15 @@ export default function Home() {
   };
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
-    onNewChat: createConversation,
-    onToggleSidebar: () => dispatch({ type: 'TOGGLE_SIDEBAR' }),
-    onToggleSettings: () => dispatch({ type: 'TOGGLE_SETTINGS' }),
-    onFocusInput: () => {
+  useKeyboardShortcuts([
+    { keys: 'ctrl+n', description: 'New chat', handler: createConversation },
+    { keys: 'ctrl+b', description: 'Toggle sidebar', handler: () => dispatch({ type: 'TOGGLE_SIDEBAR' }) },
+    { keys: 'ctrl+,', description: 'Toggle settings', handler: () => dispatch({ type: 'TOGGLE_SETTINGS' }) },
+    { keys: '/', description: 'Focus input', noInputFocus: true, handler: () => {
       const textarea = document.querySelector('textarea');
       textarea?.focus();
-    },
-  });
+    }},
+  ]);
 
   const messages = activeConversation?.messages || [];
   const hasMessages = messages.length > 0;

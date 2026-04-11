@@ -48,14 +48,14 @@ export default function ConversePage() {
   };
 
   // Keyboard shortcuts
-  useKeyboardShortcuts({
-    onNewChat: createConversation,
-    onToggleSettings: () => setSettingsOpen(prev => !prev),
-    onFocusInput: () => {
+  useKeyboardShortcuts([
+    { keys: 'ctrl+n', description: 'New chat', handler: createConversation },
+    { keys: 'ctrl+,', description: 'Toggle settings', handler: () => setSettingsOpen(prev => !prev) },
+    { keys: '/', description: 'Focus input', noInputFocus: true, handler: () => {
       const textarea = document.querySelector('textarea');
       textarea?.focus();
-    },
-  });
+    }},
+  ]);
 
   // Manus provider shows task view
   if (isManus) return <ManusTaskView />;
