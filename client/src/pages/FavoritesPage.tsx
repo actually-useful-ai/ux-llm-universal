@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { AudioLines, FolderPlus, Image as ImageIcon, LayoutGrid, Search, Share2, Star, Video } from 'lucide-react';
+import { toast } from 'sonner';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import CollectionPickerDialog from '@/components/CollectionPickerDialog';
@@ -66,6 +67,7 @@ export default function FavoritesPage() {
     if (!serverId) return;
     const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}${artifactSharePath(serverId)}`;
     await navigator.clipboard.writeText(url);
+    toast.success('Share link copied');
   };
 
   return (

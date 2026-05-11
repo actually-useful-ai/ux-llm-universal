@@ -7,12 +7,13 @@ import { useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import {
   LayoutGrid, Image as ImageIcon, Video, AudioLines,
-  FileText, Star, Filter, Search, FolderOpen, FolderPlus,
+  FileText, Star, Filter, Search, FolderOpen, FolderPlus, Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import { toast } from 'sonner';
 import CollectionPickerDialog from '@/components/CollectionPickerDialog';
 import { useArtifacts, type ArtifactType } from '@/contexts/ArtifactContext';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
@@ -37,6 +38,13 @@ function GalleryContent() {
   const [viewerIndex, setViewerIndex] = useState(0);
   const [collectionArtifactId, setCollectionArtifactId] = useState<number | null>(null);
   const [collectionArtifactLabel, setCollectionArtifactLabel] = useState<string>('');
+
+  const copyShareLink = async (serverId?: number) => {
+    if (!serverId) return;
+    const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}${artifactSharePath(serverId)}`;
+    await navigator.clipboard.writeText(url);
+    toast.success('Share link copied');
+  };
 
   const filtered = useMemo(() => {
     let result = artifacts;
@@ -224,6 +232,16 @@ function GalleryContent() {
                       >
                         <FolderPlus className="w-3 h-3 text-white/80" />
                       </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          void copyShareLink(artifact.serverId);
+                        }}
+                        className="h-6 w-6 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+                        disabled={!artifact.serverId}
+                      >
+                        <Share2 className="w-3 h-3 text-white/80" />
+                      </button>
                     </div>
                     {artifact.prompt && (
                       <p className="text-white text-[11px] opacity-0 group-hover:opacity-100 transition-opacity line-clamp-2">
@@ -256,7 +274,7 @@ function GalleryContent() {
 
       {filtered.length > 0 && (
         <div className="border-t border-border/30 px-6 py-3 text-xs text-muted-foreground">
-          Share links use persisted server artifacts. Open an artifact in favorites or showcase flows for public sharing.
+          Share and collection actions are available for persisted server artifacts directly from the gallery grid.
         </div>
       )}
 
