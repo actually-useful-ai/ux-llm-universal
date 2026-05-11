@@ -7,12 +7,13 @@ import { useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import {
   LayoutGrid, Image as ImageIcon, Video, AudioLines,
-  FileText, Star, Filter, Search, FolderOpen,
+  FileText, Star, Filter, Search, FolderOpen, FolderPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
+import CollectionPickerDialog from '@/components/CollectionPickerDialog';
 import { useArtifacts, type ArtifactType } from '@/contexts/ArtifactContext';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
 import { artifactSharePath } from '@/lib/share';
@@ -34,6 +35,8 @@ function GalleryContent() {
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [collectionArtifactId, setCollectionArtifactId] = useState<number | null>(null);
+  const [collectionArtifactLabel, setCollectionArtifactLabel] = useState<string>('');
 
   const filtered = useMemo(() => {
     let result = artifacts;
@@ -209,6 +212,18 @@ function GalleryContent() {
                           artifact.isFavorite ? 'text-yellow-400 fill-current' : 'text-white/80'
                         )} />
                       </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          if (!artifact.serverId) return;
+                          setCollectionArtifactId(artifact.serverId);
+                          setCollectionArtifactLabel(artifact.prompt || 'artifact');
+                        }}
+                        className="h-6 w-6 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+                        disabled={!artifact.serverId}
+                      >
+                        <FolderPlus className="w-3 h-3 text-white/80" />
+                      </button>
                     </div>
                     {artifact.prompt && (
                       <p className="text-white text-[11px] opacity-0 group-hover:opacity-100 transition-opacity line-clamp-2">
@@ -244,6 +259,18 @@ function GalleryContent() {
           Share links use persisted server artifacts. Open an artifact in favorites or showcase flows for public sharing.
         </div>
       )}
+
+      <CollectionPickerDialog
+        artifactId={collectionArtifactId}
+        artifactLabel={collectionArtifactLabel}
+        open={collectionArtifactId !== null}
+        onOpenChange={open => {
+          if (!open) {
+            setCollectionArtifactId(null);
+            setCollectionArtifactLabel('');
+          }
+        }}
+      />
     </div>
   );
 }

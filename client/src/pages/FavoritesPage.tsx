@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { AudioLines, Image as ImageIcon, LayoutGrid, Search, Share2, Star, Video } from 'lucide-react';
+import { AudioLines, FolderPlus, Image as ImageIcon, LayoutGrid, Search, Share2, Star, Video } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
+import CollectionPickerDialog from '@/components/CollectionPickerDialog';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
 import { useArtifacts, type ArtifactType } from '@/contexts/ArtifactContext';
 import { artifactSharePath } from '@/lib/share';
@@ -20,6 +21,8 @@ export default function FavoritesPage() {
   const [query, setQuery] = useState('');
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewerIndex, setViewerIndex] = useState(0);
+  const [collectionArtifactId, setCollectionArtifactId] = useState<number | null>(null);
+  const [collectionArtifactLabel, setCollectionArtifactLabel] = useState<string>('');
 
   const favoriteArtifacts = useMemo(() => {
     return artifacts.filter(artifact => favorites.has(artifact.id));
@@ -158,18 +161,33 @@ export default function FavoritesPage() {
                   </p>
                 </div>
                 <div className="px-4 pb-4">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    disabled={!artifact.serverId}
-                    onClick={e => {
-                      e.stopPropagation();
-                      void copyShareLink(artifact.serverId);
-                    }}
-                  >
-                    <Share2 className="mr-2 h-4 w-4" />
-                    Share
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!artifact.serverId}
+                      onClick={e => {
+                        e.stopPropagation();
+                        setCollectionArtifactId(artifact.serverId ?? null);
+                        setCollectionArtifactLabel(artifact.prompt || 'artifact');
+                      }}
+                    >
+                      <FolderPlus className="mr-2 h-4 w-4" />
+                      Collect
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={!artifact.serverId}
+                      onClick={e => {
+                        e.stopPropagation();
+                        void copyShareLink(artifact.serverId);
+                      }}
+                    >
+                      <Share2 className="mr-2 h-4 w-4" />
+                      Share
+                    </Button>
+                  </div>
                 </div>
               </button>
             ))}
@@ -189,6 +207,18 @@ export default function FavoritesPage() {
         isFavorited={item => {
           const artifact = artifacts.find(entry => entry.url === item.url);
           return artifact ? favorites.has(artifact.id) : false;
+        }}
+      />
+
+      <CollectionPickerDialog
+        artifactId={collectionArtifactId}
+        artifactLabel={collectionArtifactLabel}
+        open={collectionArtifactId !== null}
+        onOpenChange={open => {
+          if (!open) {
+            setCollectionArtifactId(null);
+            setCollectionArtifactLabel('');
+          }
         }}
       />
     </div>
