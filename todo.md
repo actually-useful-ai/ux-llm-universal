@@ -1,19 +1,26 @@
 # Project TODO
 
-- [x] Add backend API proxy routes for Ollama (bypass CORS)
-- [x] Update frontend to use backend proxy instead of direct ollama.com calls
-- [x] Fix Home.tsx conflict from upgrade (restore chat UI)
-- [x] Fix package.json conflict (keep highlight.js and uuid deps)
-- [x] Run pnpm db:push to sync database schema
-- [x] Test cloud connection end-to-end with API key
-- [x] Write vitest tests for ollama-proxy routes (9 tests passing)
-- [x] Research dr.eamer.dev/code/api and api-gateway docs
-- [x] Fix Ollama API key truncation (two-part env var workaround)
-- [x] Verify GLM-5 streaming works end-to-end through proxy
-- [x] Push code to GitHub (lukeslp/ollama-chat)
-- [ ] Fix 413 error on image uploads (increase proxy body size limit)
-- [ ] Integrate real web search API tool via dr.eamer.dev
-- [ ] Integrate image generation tool
-- [ ] Integrate dr.eamer.dev API tools (news, data sources, TTS)
-- [ ] Wire all tool results into chat flow and UI
-- [ ] Test end-to-end tool use with streaming
+## Canonical `/io/chat` now live
+
+- [x] Add utility routes for voice, favorites, templates, presets, models, analytics, tokenizer, batches, research tools, showcase, and share pages
+- [x] Add public share/showcase endpoints
+- [x] Add presets persistence to `ux-glm-chat`
+- [x] Add direct gallery/favorites collection linking
+- [x] Add direct gallery/favorites share actions
+
+## Next build work
+
+- [ ] Apply presets directly inside image, video, and TTS generation panels
+- [ ] Add `/research/search` route for Studio portal parity
+- [ ] Add `/research/hive` route for Studio workflow parity
+- [ ] Port video edit/extend workflows from the legacy media app
+- [ ] Replace lightweight share tokens with dedicated persisted share-link records
+- [ ] Decide whether showcase should stay favorite-driven or become explicitly opt-in
+
+## Cleanup and verification
+
+- [ ] Fix baseline `pnpm run check` failures in `JobContext.tsx`
+- [ ] Fix baseline `pnpm run check` failures in `emoji-replace.tsx`
+- [ ] Fix baseline `pnpm run check` failures in `tool-service.ts`
+- [ ] Resolve external `dreamer-proxy.ts` typecheck failure without clobbering model-list work
+- [ ] Repoint or retire legacy `/io/images`, `/io/vision`, `/io/voice`, `/io/media`, and `/io/studio` once parity is confirmed

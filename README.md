@@ -1,12 +1,20 @@
 # Universal Chat
 
-Universal LLM chat interface -- streaming chat, image/video/TTS generation, tool use, and vision across Ollama and 9 cloud providers.
+Canonical `/io/chat` app for streaming chat, image/video/TTS generation, research, artifact management, and public sharing across Ollama and cloud providers.
 
 ## What is this
 
-I built this as a single interface for talking to pretty much any language model I use day-to-day, without switching between a dozen different vendor UIs. It connects to Ollama (local, remote, or cloud) and 9 cloud providers through a unified streaming chat, plus dedicated panels for image generation, video generation, text-to-speech, vision/alt-text, multi-agent research, and content safety evaluation.
+This repo is the canonical user-facing AI surface mounted at `https://dr.eamer.dev/io/chat/*`. It is the consolidation target for the older `/io/images`, `/io/vision`, `/io/voice`, `/io/media`, and `/io/studio` surfaces.
 
-The whole thing is a React + Express monorepo with tRPC for type-safe communication, real-time SSE streaming, and a tool-calling system that hooks into external data sources (arXiv, Wikipedia, NASA, GitHub, weather, news, and more).
+It provides one shared React + Express app for:
+- conversational chat
+- media creation
+- live voice
+- multi-agent research
+- artifact gallery, collections, favorites, and presets
+- public share/showcase pages
+
+The whole thing is a React + Express monorepo with tRPC for type-safe communication, real-time SSE streaming, and a tool-calling system that hooks into external data sources.
 
 ## Features
 
@@ -24,11 +32,13 @@ The whole thing is a React + Express monorepo with tRPC for type-safe communicat
 - Text-to-speech with multi-voice and batch options
 - Image editing panel
 - Provider comparison -- run the same prompt across multiple image providers side by side
+- Preset management route for reusable generation settings
 
 **Research**
 - Multi-agent orchestration (3-tier: belters, drummers, camina)
 - Configurable agent count and provider selection
 - Real-time progress tracking per agent
+- Tool catalog route for research and tool-calling workflows
 
 **Evaluate**
 - Content safety classification with streaming reasoning
@@ -40,6 +50,33 @@ The whole thing is a React + Express monorepo with tRPC for type-safe communicat
 - Collapsible sidebar, settings panel, command palette
 - Prompt library for saving and reusing prompts
 - Artifact gallery with collections
+- Favorites route
+- Public showcase route
+- Public share pages for persisted artifacts
+
+## Canonical routes
+
+Current route surface inside `/io/chat`:
+
+- `/` -- converse
+- `/create` -- image, video, TTS, edit, compare
+- `/voice` -- realtime voice session bootstrap UI
+- `/research` -- Beltalowda multi-agent research
+- `/research/tools` -- canonical tool catalog
+- `/evaluate` -- safety evaluation
+- `/gallery` -- artifact browser
+- `/gallery/collections` -- collections manager
+- `/favorites` -- starred artifacts
+- `/templates` -- curated prompt templates
+- `/presets` -- reusable media settings
+- `/models` -- model browser
+- `/analytics` -- usage dashboard
+- `/tokenizer` -- token inspection
+- `/batches` -- batch operations
+- `/showcase` -- public showcase
+- `/share/:token` -- public artifact page
+
+The app is built with a production base path of `/io/chat/`, so all routes above are intended to live under that prefix.
 
 ## Providers
 
@@ -89,6 +126,20 @@ pnpm test         # Run tests (vitest)
 pnpm format       # Prettier
 pnpm db:push      # Generate and run Drizzle migrations
 ```
+
+## Current status
+
+Canonicalization work already shipped in this repo:
+
+- dedicated utility routes for voice, favorites, templates, presets, models, analytics, tokenizer, batches, research tools, showcase, and share pages
+- public share/showcase backend over existing artifact records
+- direct gallery and favorites share actions
+- direct add-to-collection actions from gallery and favorites
+- presets persistence in `ux-glm-chat`
+
+Known verification note:
+
+- `pnpm run check` still has baseline pre-existing TypeScript failures outside this migration slice, including `client/src/contexts/JobContext.tsx`, `client/src/lib/emoji-replace.tsx`, `client/src/lib/tool-service.ts`, and `server/dreamer-proxy.ts`
 
 ## Environment variables
 
@@ -145,17 +196,25 @@ client/          React SPA
   src/
     components/  Chat, media panels, settings, Manus task UI, shadcn/ui
     contexts/    ChatContext, Provider, Settings, Theme, Artifact, Job, Tool
-    pages/       Converse, Create, Research, Evaluate, Gallery
+    pages/       Converse, Create, Voice, Research, Evaluate, Gallery, utility routes
     lib/         API clients (ollama, dreamer, manus), types, tool service
 server/          Express backend
-  _core/         tRPC setup, LLM proxy logic, OAuth, image gen, TTS
-  routers/       artifacts, collections, prompts, analytics
-  *-proxy.ts     Ollama, Dreamer (multi-provider), Manus, Beltalowda
+  _core/         tRPC setup, auth context, Express bootstrap
+  routers/       artifacts, collections, prompts, presets, analytics
+  *-proxy.ts     Ollama, Dreamer, Manus, Beltalowda, Safeguard, xAI utility, public artifact
 shared/          Types and constants shared between client and server
 drizzle/         MySQL schema and migrations
 ```
 
 The server acts as a proxy layer -- it holds all provider API keys and the client never touches them directly. Provider discovery happens at startup: the server checks which env keys exist, fetches live model lists (with 5-minute cache and fallback lists), and exposes a `/api/providers` endpoint the client polls.
+
+Additional app-specific proxy surfaces:
+
+- `/api/voice/realtime/session` -- realtime voice bootstrap
+- `/api/tokenize` -- tokenizer helper
+- `/api/xai/batches/*` -- batch operations
+- `/api/share/:token` -- public artifact load
+- `/api/showcase` -- public showcase listing
 
 ## Tool system
 
@@ -165,6 +224,16 @@ Tools come from two sources:
 2. **Remote** -- fetched from a gateway API, organized by module (arXiv, Census, GitHub, NASA, News, Weather, Wikipedia, YouTube, etc.)
 
 When a model requests a tool call during chat, the UI shows the tool execution state, the server runs it, and the result goes back to the model for a final response.
+
+## Next steps
+
+Highest-value remaining consolidation work:
+
+1. Apply saved presets directly inside `ImageGenPanel`, `VideoGenPanel`, and `TTSPanel`.
+2. Fold more of the old Studio portal into `/research/*`, starting with search and hive workflows.
+3. Add first-class video edit/extend parity from the legacy media app.
+4. Replace the current pragmatic share-token scheme with dedicated persisted share-link records.
+5. Retire or repoint legacy `/io/images`, `/io/vision`, `/io/voice`, `/io/media`, and `/io/studio` entrypoints once parity is confirmed.
 
 ## License
 
