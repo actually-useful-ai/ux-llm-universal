@@ -7,6 +7,7 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import {
   MessageCircle, Sparkles, Network, Shield, LayoutGrid,
+  Mic, Star, BookOpen, Cpu, BarChart3, Hash,
   Plus, Search, ArrowRight,
 } from 'lucide-react';
 import {
@@ -65,6 +66,30 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
           <CommandItem onSelect={() => runCommand(() => navigate('/gallery'))}>
             <LayoutGrid className="w-4 h-4" />
             <span>Go to Gallery</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/voice'))}>
+            <Mic className="w-4 h-4" />
+            <span>Go to Live Voice</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/favorites'))}>
+            <Star className="w-4 h-4" />
+            <span>Go to Favorites</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/templates'))}>
+            <BookOpen className="w-4 h-4" />
+            <span>Go to Templates</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/models'))}>
+            <Cpu className="w-4 h-4" />
+            <span>Go to Models</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/analytics'))}>
+            <BarChart3 className="w-4 h-4" />
+            <span>Go to Analytics</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/tokenizer'))}>
+            <Hash className="w-4 h-4" />
+            <span>Go to Tokenizer</span>
           </CommandItem>
         </CommandGroup>
 

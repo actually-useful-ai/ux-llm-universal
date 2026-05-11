@@ -9,6 +9,7 @@ import { registerDreamerProxy } from "../dreamer-proxy";
 import { registerManusProxy } from "../manus-proxy";
 import { registerBeltalowdaProxy } from "../beltalowda-proxy";
 import { registerSafeguardProxy } from "../safeguard-proxy";
+import { registerXaiUtilityProxy } from "../xai-utility-proxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -50,6 +51,8 @@ async function startServer() {
   registerBeltalowdaProxy(app);
   // Content safety evaluation proxy
   registerSafeguardProxy(app);
+  // xAI utility endpoints for realtime voice + tokenization
+  registerXaiUtilityProxy(app);
   // tRPC API
   app.use(
     "/api/trpc",

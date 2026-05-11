@@ -4,9 +4,10 @@
 // ============================================================
 
 import { useState, useMemo } from 'react';
+import { useLocation } from 'wouter';
 import {
   LayoutGrid, Image as ImageIcon, Video, AudioLines,
-  FileText, Star, Filter, Search,
+  FileText, Star, Filter, Search, FolderOpen,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,6 +27,7 @@ const TYPE_FILTERS: { id: ArtifactType | 'all'; label: string; icon: typeof Imag
 
 function GalleryContent() {
   const { artifacts, toggleFavorite, favorites } = useArtifacts();
+  const [, navigate] = useLocation();
   const [activeFilter, setActiveFilter] = useState<ArtifactType | 'all'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
@@ -126,6 +128,16 @@ function GalleryContent() {
         >
           <Star className={cn('w-3.5 h-3.5', showFavoritesOnly && 'fill-current')} />
           Favorites
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-8 gap-1.5"
+          onClick={() => navigate('/gallery/collections')}
+        >
+          <FolderOpen className="w-3.5 h-3.5" />
+          Collections
         </Button>
 
         {/* Search */}

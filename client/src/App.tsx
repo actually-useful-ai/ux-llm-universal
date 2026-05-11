@@ -20,6 +20,13 @@ const CreatePage = lazy(() => import("./pages/CreatePage"));
 const ResearchPage = lazy(() => import("./pages/ResearchPage"));
 const EvaluatePage = lazy(() => import("./pages/EvaluatePage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
+const VoicePage = lazy(() => import("./pages/VoicePage"));
+const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
+const CollectionsPage = lazy(() => import("./pages/CollectionsPage"));
+const TemplatesPage = lazy(() => import("./pages/TemplatesPage"));
+const ModelsPage = lazy(() => import("./pages/ModelsPage"));
+const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
+const TokenizerPage = lazy(() => import("./pages/TokenizerPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "") || "";
@@ -43,8 +50,14 @@ function AppRouter() {
             <Route path="/research" component={ResearchPage} />
             <Route path="/research/:taskId" component={ResearchPage} />
             <Route path="/evaluate" component={EvaluatePage} />
+            <Route path="/voice" component={VoicePage} />
+            <Route path="/favorites" component={FavoritesPage} />
+            <Route path="/templates" component={TemplatesPage} />
+            <Route path="/models" component={ModelsPage} />
+            <Route path="/analytics" component={AnalyticsPage} />
+            <Route path="/tokenizer" component={TokenizerPage} />
+            <Route path="/gallery/collections" component={CollectionsPage} />
             <Route path="/gallery" component={GalleryPage} />
-            <Route path="/gallery/collections" component={GalleryPage} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>

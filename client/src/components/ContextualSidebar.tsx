@@ -9,6 +9,7 @@ import { useLocation } from 'wouter';
 import {
   MessageCircle, Sparkles, Network, Shield, LayoutGrid,
   Plus, MessageSquare, Trash2, X, HelpCircle, ExternalLink,
+  Mic, Star, BookOpen, Cpu, BarChart3, Hash,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -24,11 +25,19 @@ interface Props {
 const NAV_ITEMS = [
   { path: '/', label: 'Converse', icon: MessageCircle },
   { path: '/create', label: 'Create', icon: Sparkles },
+  { path: '/voice', label: 'Voice', icon: Mic },
   { path: '/research', label: 'Research', icon: Network },
   { path: '/evaluate', label: 'Evaluate', icon: Shield },
 ] as const;
 
 const GALLERY_NAV = { path: '/gallery', label: 'Gallery', icon: LayoutGrid } as const;
+const SECONDARY_ITEMS = [
+  { path: '/favorites', label: 'Favorites', icon: Star },
+  { path: '/templates', label: 'Templates', icon: BookOpen },
+  { path: '/models', label: 'Models', icon: Cpu },
+  { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+  { path: '/tokenizer', label: 'Tokenizer', icon: Hash },
+] as const;
 
 export default function ContextualSidebar({ onClose, collapsed }: Props) {
   const [location, navigate] = useLocation();
@@ -131,6 +140,30 @@ export default function ContextualSidebar({ onClose, collapsed }: Props) {
           <GALLERY_NAV.icon className="w-4 h-4 shrink-0" />
           {!collapsed && <span>{GALLERY_NAV.label}</span>}
         </button>
+
+        {!collapsed && (
+          <>
+            <Separator className="my-2 bg-sidebar-border" />
+            {SECONDARY_ITEMS.map(item => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.path}
+                  onClick={() => handleNav(item.path)}
+                  className={cn(
+                    'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-sm font-medium transition-colors',
+                    isActive(item.path)
+                      ? 'bg-sidebar-accent/60 text-sidebar-accent-foreground'
+                      : 'text-muted-foreground hover:bg-sidebar-accent/30 hover:text-sidebar-foreground'
+                  )}
+                >
+                  <Icon className="w-4 h-4 shrink-0" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </>
+        )}
       </div>
 
       <Separator className="bg-sidebar-border" />
@@ -232,6 +265,24 @@ export default function ContextualSidebar({ onClose, collapsed }: Props) {
             <div className="px-3 py-4">
               <p className="eyebrow mb-2">Filters</p>
               <p className="text-sm text-muted-foreground/60">All artifacts</p>
+            </div>
+          )}
+
+          {location.startsWith('/voice') && (
+            <div className="px-3 py-4">
+              <p className="eyebrow mb-2">Voice Session</p>
+              <p className="text-sm text-muted-foreground/60">Realtime audio chat with live transcripts</p>
+            </div>
+          )}
+
+          {(location.startsWith('/favorites')
+            || location.startsWith('/templates')
+            || location.startsWith('/models')
+            || location.startsWith('/analytics')
+            || location.startsWith('/tokenizer')) && (
+            <div className="px-3 py-4">
+              <p className="eyebrow mb-2">Workspace</p>
+              <p className="text-sm text-muted-foreground/60">Canonical utility routes for the unified chat app</p>
             </div>
           )}
         </div>

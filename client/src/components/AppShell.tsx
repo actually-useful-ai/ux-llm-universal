@@ -36,9 +36,15 @@ import type { AppSettings } from '@/lib/types';
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Converse',
   '/create': 'Create',
+  '/voice': 'Live Voice',
   '/research': 'Research',
   '/evaluate': 'Evaluate',
   '/gallery': 'Gallery',
+  '/favorites': 'Favorites',
+  '/templates': 'Templates',
+  '/models': 'Models',
+  '/analytics': 'Analytics',
+  '/tokenizer': 'Tokenizer',
 };
 
 interface Props {
