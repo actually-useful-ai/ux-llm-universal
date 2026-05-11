@@ -9,6 +9,7 @@ import { registerDreamerProxy } from "../dreamer-proxy";
 import { registerManusProxy } from "../manus-proxy";
 import { registerBeltalowdaProxy } from "../beltalowda-proxy";
 import { registerSafeguardProxy } from "../safeguard-proxy";
+import { registerPublicArtifactProxy } from "../public-artifact-proxy";
 import { registerXaiUtilityProxy } from "../xai-utility-proxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -51,6 +52,8 @@ async function startServer() {
   registerBeltalowdaProxy(app);
   // Content safety evaluation proxy
   registerSafeguardProxy(app);
+  // Public share/showcase endpoints over existing artifact records
+  registerPublicArtifactProxy(app);
   // xAI utility endpoints for realtime voice + tokenization
   registerXaiUtilityProxy(app);
   // tRPC API

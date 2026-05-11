@@ -47,6 +47,8 @@ const ROUTE_TITLES: Record<string, string> = {
   '/analytics': 'Analytics',
   '/tokenizer': 'Tokenizer',
   '/batches': 'Batches',
+  '/showcase': 'Showcase',
+  '/share': 'Share',
 };
 
 interface Props {

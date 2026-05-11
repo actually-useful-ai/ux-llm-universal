@@ -1,9 +1,10 @@
 import { useMemo, useState } from 'react';
-import { AudioLines, Image as ImageIcon, LayoutGrid, Search, Star, Video } from 'lucide-react';
+import { AudioLines, Image as ImageIcon, LayoutGrid, Search, Share2, Star, Video } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
 import { useArtifacts, type ArtifactType } from '@/contexts/ArtifactContext';
+import { artifactSharePath } from '@/lib/share';
 import { cn } from '@/lib/utils';
 
 const TYPE_FILTERS: { id: ArtifactType | 'all'; label: string; icon: typeof LayoutGrid }[] = [
@@ -45,6 +46,7 @@ export default function FavoritesPage() {
     .map(artifact => ({
       type: artifact.type as 'image' | 'video' | 'audio',
       url: artifact.url,
+      cachedId: artifact.serverId,
       prompt: artifact.prompt,
       metadata: { provider: artifact.provider, model: artifact.model },
     }));
@@ -55,6 +57,12 @@ export default function FavoritesPage() {
       setViewerIndex(mediaIndex);
       setViewerOpen(true);
     }
+  };
+
+  const copyShareLink = async (serverId?: number) => {
+    if (!serverId) return;
+    const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}${artifactSharePath(serverId)}`;
+    await navigator.clipboard.writeText(url);
   };
 
   return (
@@ -148,6 +156,20 @@ export default function FavoritesPage() {
                   <p className="text-xs text-muted-foreground">
                     {[artifact.type, artifact.provider, artifact.model].filter(Boolean).join(' · ')}
                   </p>
+                </div>
+                <div className="px-4 pb-4">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    disabled={!artifact.serverId}
+                    onClick={e => {
+                      e.stopPropagation();
+                      void copyShareLink(artifact.serverId);
+                    }}
+                  >
+                    <Share2 className="mr-2 h-4 w-4" />
+                    Share
+                  </Button>
                 </div>
               </button>
             ))}

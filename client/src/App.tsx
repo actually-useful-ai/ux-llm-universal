@@ -29,6 +29,8 @@ const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const TokenizerPage = lazy(() => import("./pages/TokenizerPage"));
 const BatchesPage = lazy(() => import("./pages/BatchesPage"));
 const ResearchToolsPage = lazy(() => import("./pages/ResearchToolsPage"));
+const ShowcasePage = lazy(() => import("./pages/ShowcasePage"));
+const SharePage = lazy(() => import("./pages/SharePage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "") || "";
@@ -60,6 +62,8 @@ function AppRouter() {
             <Route path="/analytics" component={AnalyticsPage} />
             <Route path="/tokenizer" component={TokenizerPage} />
             <Route path="/batches" component={BatchesPage} />
+            <Route path="/showcase" component={ShowcasePage} />
+            <Route path="/share/:token" component={SharePage} />
             <Route path="/gallery/collections" component={CollectionsPage} />
             <Route path="/gallery" component={GalleryPage} />
             <Route component={NotFound} />

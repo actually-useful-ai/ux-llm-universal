@@ -9,7 +9,7 @@ import { useLocation } from 'wouter';
 import {
   MessageCircle, Sparkles, Network, Shield, LayoutGrid,
   Plus, MessageSquare, Trash2, X, HelpCircle, ExternalLink,
-  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench,
+  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -38,6 +38,7 @@ const SECONDARY_ITEMS = [
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/tokenizer', label: 'Tokenizer', icon: Hash },
   { path: '/batches', label: 'Batches', icon: Layers },
+  { path: '/showcase', label: 'Showcase', icon: Share2 },
 ] as const;
 
 export default function ContextualSidebar({ onClose, collapsed }: Props) {
@@ -287,7 +288,8 @@ export default function ContextualSidebar({ onClose, collapsed }: Props) {
             || location.startsWith('/models')
             || location.startsWith('/analytics')
             || location.startsWith('/tokenizer')
-            || location.startsWith('/batches')) && (
+            || location.startsWith('/batches')
+            || location.startsWith('/showcase')) && (
             <div className="px-3 py-4">
               <p className="eyebrow mb-2">Workspace</p>
               <p className="text-sm text-muted-foreground/60">Canonical utility routes for the unified chat app</p>

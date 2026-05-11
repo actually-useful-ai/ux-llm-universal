@@ -15,6 +15,7 @@ import { Badge } from '@/components/ui/badge';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useArtifacts, type ArtifactType } from '@/contexts/ArtifactContext';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
+import { artifactSharePath } from '@/lib/share';
 import { cn } from '@/lib/utils';
 
 const TYPE_FILTERS: { id: ArtifactType | 'all'; label: string; icon: typeof ImageIcon }[] = [
@@ -56,12 +57,13 @@ function GalleryContent() {
   // Media items for viewer (images/videos/audio only)
   const mediaItems: MediaItem[] = filtered
     .filter(a => ['image', 'video', 'audio'].includes(a.type))
-    .map(a => ({
-      type: a.type as 'image' | 'video' | 'audio',
-      url: a.url,
-      prompt: a.prompt,
-      metadata: { provider: a.provider, model: a.model },
-    }));
+      .map(a => ({
+        type: a.type as 'image' | 'video' | 'audio',
+        url: a.url,
+        prompt: a.prompt,
+        cachedId: a.serverId,
+        metadata: { provider: a.provider, model: a.model },
+      }));
 
   const openViewer = (artifactIndex: number) => {
     const artifact = filtered[artifactIndex];
@@ -236,6 +238,12 @@ function GalleryContent() {
           return artifact ? favorites.has(artifact.id) : false;
         }}
       />
+
+      {filtered.length > 0 && (
+        <div className="border-t border-border/30 px-6 py-3 text-xs text-muted-foreground">
+          Share links use persisted server artifacts. Open an artifact in favorites or showcase flows for public sharing.
+        </div>
+      )}
     </div>
   );
 }
