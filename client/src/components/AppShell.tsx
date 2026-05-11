@@ -38,6 +38,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/create': 'Create',
   '/voice': 'Live Voice',
   '/research': 'Research',
+  '/research/tools': 'Research Tools',
   '/evaluate': 'Evaluate',
   '/gallery': 'Gallery',
   '/favorites': 'Favorites',
@@ -45,6 +46,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/models': 'Models',
   '/analytics': 'Analytics',
   '/tokenizer': 'Tokenizer',
+  '/batches': 'Batches',
 };
 
 interface Props {

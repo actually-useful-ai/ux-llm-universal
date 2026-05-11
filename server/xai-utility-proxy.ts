@@ -89,4 +89,143 @@ export function registerXaiUtilityProxy(app: Express) {
       return res.status(500).json({ error: message });
     }
   });
+
+  app.post('/api/xai/batches', async (req: Request, res: Response) => {
+    try {
+      const name = typeof req.body?.name === 'string' ? req.body.name.trim() : '';
+      if (!name) {
+        return res.status(400).json({ error: 'Batch name is required' });
+      }
+
+      const apiRes = await proxyXaiJson('/v1/batches', { name });
+      const responseText = await apiRes.text();
+
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({ error: responseText || 'Failed to create batch' });
+      }
+
+      return res.json(JSON.parse(responseText));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to create batch';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.get('/api/xai/batches', async (req: Request, res: Response) => {
+    try {
+      const params = new URLSearchParams();
+      if (typeof req.query.limit === 'string' && req.query.limit) params.set('limit', req.query.limit);
+      if (typeof req.query.pagination_token === 'string' && req.query.pagination_token) {
+        params.set('pagination_token', req.query.pagination_token);
+      }
+      const suffix = params.toString() ? `?${params.toString()}` : '';
+      const apiRes = await fetch(`${XAI_BASE}/v1/batches${suffix}`, {
+        headers: { Authorization: `Bearer ${getXaiApiKey()}` },
+        signal: AbortSignal.timeout(15000),
+      });
+      const responseText = await apiRes.text();
+
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({ error: responseText || 'Failed to list batches' });
+      }
+
+      return res.json(JSON.parse(responseText));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list batches';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.get('/api/xai/batches/:batchId', async (req: Request, res: Response) => {
+    try {
+      const apiRes = await fetch(`${XAI_BASE}/v1/batches/${encodeURIComponent(req.params.batchId)}`, {
+        headers: { Authorization: `Bearer ${getXaiApiKey()}` },
+        signal: AbortSignal.timeout(15000),
+      });
+      const responseText = await apiRes.text();
+
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({ error: responseText || 'Failed to fetch batch' });
+      }
+
+      return res.json(JSON.parse(responseText));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch batch';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.get('/api/xai/batches/:batchId/requests', async (req: Request, res: Response) => {
+    try {
+      const params = new URLSearchParams();
+      if (typeof req.query.limit === 'string' && req.query.limit) params.set('limit', req.query.limit);
+      if (typeof req.query.pagination_token === 'string' && req.query.pagination_token) {
+        params.set('pagination_token', req.query.pagination_token);
+      }
+      const suffix = params.toString() ? `?${params.toString()}` : '';
+      const apiRes = await fetch(`${XAI_BASE}/v1/batches/${encodeURIComponent(req.params.batchId)}/requests${suffix}`, {
+        headers: { Authorization: `Bearer ${getXaiApiKey()}` },
+        signal: AbortSignal.timeout(15000),
+      });
+      const responseText = await apiRes.text();
+
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({ error: responseText || 'Failed to list batch requests' });
+      }
+
+      return res.json(JSON.parse(responseText));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to list batch requests';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.get('/api/xai/batches/:batchId/results', async (req: Request, res: Response) => {
+    try {
+      const params = new URLSearchParams();
+      if (typeof req.query.limit === 'string' && req.query.limit) params.set('limit', req.query.limit);
+      if (typeof req.query.pagination_token === 'string' && req.query.pagination_token) {
+        params.set('pagination_token', req.query.pagination_token);
+      }
+      const suffix = params.toString() ? `?${params.toString()}` : '';
+      const apiRes = await fetch(`${XAI_BASE}/v1/batches/${encodeURIComponent(req.params.batchId)}/results${suffix}`, {
+        headers: { Authorization: `Bearer ${getXaiApiKey()}` },
+        signal: AbortSignal.timeout(15000),
+      });
+      const responseText = await apiRes.text();
+
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({ error: responseText || 'Failed to fetch batch results' });
+      }
+
+      return res.json(JSON.parse(responseText));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch batch results';
+      return res.status(500).json({ error: message });
+    }
+  });
+
+  app.post('/api/xai/batches/:batchId/cancel', async (req: Request, res: Response) => {
+    try {
+      const apiRes = await fetch(`${XAI_BASE}/v1/batches/${encodeURIComponent(req.params.batchId)}/cancel`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${getXaiApiKey()}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({}),
+        signal: AbortSignal.timeout(15000),
+      });
+      const responseText = await apiRes.text();
+
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({ error: responseText || 'Failed to cancel batch' });
+      }
+
+      return res.json(responseText ? JSON.parse(responseText) : { success: true });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to cancel batch';
+      return res.status(500).json({ error: message });
+    }
+  });
 }

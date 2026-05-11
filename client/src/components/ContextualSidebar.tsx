@@ -9,7 +9,7 @@ import { useLocation } from 'wouter';
 import {
   MessageCircle, Sparkles, Network, Shield, LayoutGrid,
   Plus, MessageSquare, Trash2, X, HelpCircle, ExternalLink,
-  Mic, Star, BookOpen, Cpu, BarChart3, Hash,
+  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -37,6 +37,7 @@ const SECONDARY_ITEMS = [
   { path: '/models', label: 'Models', icon: Cpu },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/tokenizer', label: 'Tokenizer', icon: Hash },
+  { path: '/batches', label: 'Batches', icon: Layers },
 ] as const;
 
 export default function ContextualSidebar({ onClose, collapsed }: Props) {
@@ -248,7 +249,13 @@ export default function ContextualSidebar({ onClose, collapsed }: Props) {
           {location.startsWith('/research') && (
             <div className="px-3 py-4">
               <p className="eyebrow mb-2">Research Tasks</p>
-              <p className="text-sm text-muted-foreground/60">No tasks yet</p>
+              <button
+                onClick={() => handleNav('/research/tools')}
+                className="mt-1 flex items-center gap-2 text-sm text-muted-foreground/60 transition-colors hover:text-sidebar-foreground"
+              >
+                <Wrench className="h-4 w-4" />
+                Tool Catalog
+              </button>
             </div>
           )}
 
@@ -279,7 +286,8 @@ export default function ContextualSidebar({ onClose, collapsed }: Props) {
             || location.startsWith('/templates')
             || location.startsWith('/models')
             || location.startsWith('/analytics')
-            || location.startsWith('/tokenizer')) && (
+            || location.startsWith('/tokenizer')
+            || location.startsWith('/batches')) && (
             <div className="px-3 py-4">
               <p className="eyebrow mb-2">Workspace</p>
               <p className="text-sm text-muted-foreground/60">Canonical utility routes for the unified chat app</p>

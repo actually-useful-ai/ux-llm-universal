@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import {
   MessageCircle, Sparkles, Network, Shield, LayoutGrid,
-  Mic, Star, BookOpen, Cpu, BarChart3, Hash,
+  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench,
   Plus, Search, ArrowRight,
 } from 'lucide-react';
 import {
@@ -90,6 +90,14 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
           <CommandItem onSelect={() => runCommand(() => navigate('/tokenizer'))}>
             <Hash className="w-4 h-4" />
             <span>Go to Tokenizer</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/batches'))}>
+            <Layers className="w-4 h-4" />
+            <span>Go to Batches</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/research/tools'))}>
+            <Wrench className="w-4 h-4" />
+            <span>Go to Research Tools</span>
           </CommandItem>
         </CommandGroup>
 
