@@ -6,6 +6,7 @@ import { artifactsRouter } from "./routers/artifacts";
 import { collectionsRouter } from "./routers/collections";
 import { promptsRouter } from "./routers/prompts";
 import { analyticsRouter } from "./routers/analytics";
+import { presetsRouter } from "./routers/presets";
 
 export const appRouter = router({
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
@@ -24,6 +25,7 @@ export const appRouter = router({
   artifacts: artifactsRouter,
   collections: collectionsRouter,
   prompts: promptsRouter,
+  presets: presetsRouter,
   analytics: analyticsRouter,
 });
 

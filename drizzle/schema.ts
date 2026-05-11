@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -104,6 +104,22 @@ export const savedPrompts = mysqlTable("saved_prompts", {
 
 export type SavedPrompt = typeof savedPrompts.$inferSelect;
 export type InsertSavedPrompt = typeof savedPrompts.$inferInsert;
+
+// ── Export Presets ─────────────────────────────────────────────
+export const exportPresets = mysqlTable("export_presets", {
+  id: int("id").autoincrement().primaryKey(),
+  userId: int("userId").notNull(),
+  feature: varchar("feature", { length: 32 }).notNull(),
+  name: varchar("name", { length: 128 }).notNull(),
+  settings: json("settings").notNull(),
+  isDefault: int("isDefault").default(0).notNull(),
+  useCount: int("useCount").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ExportPreset = typeof exportPresets.$inferSelect;
+export type InsertExportPreset = typeof exportPresets.$inferInsert;
 
 // ── Usage Log ───────────────────────────────────────────────────
 export const usageLog = mysqlTable("usage_log", {

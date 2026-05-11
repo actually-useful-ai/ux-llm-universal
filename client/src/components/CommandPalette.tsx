@@ -7,7 +7,7 @@ import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import {
   MessageCircle, Sparkles, Network, Shield, LayoutGrid,
-  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2,
+  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2, Sliders,
   Plus, Search, ArrowRight,
 } from 'lucide-react';
 import {
@@ -78,6 +78,10 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
           <CommandItem onSelect={() => runCommand(() => navigate('/templates'))}>
             <BookOpen className="w-4 h-4" />
             <span>Go to Templates</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/presets'))}>
+            <Sliders className="w-4 h-4" />
+            <span>Go to Presets</span>
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => navigate('/models'))}>
             <Cpu className="w-4 h-4" />

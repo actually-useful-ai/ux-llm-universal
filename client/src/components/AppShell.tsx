@@ -43,6 +43,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/gallery': 'Gallery',
   '/favorites': 'Favorites',
   '/templates': 'Templates',
+  '/presets': 'Presets',
   '/models': 'Models',
   '/analytics': 'Analytics',
   '/tokenizer': 'Tokenizer',

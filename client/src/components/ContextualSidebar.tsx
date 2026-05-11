@@ -9,7 +9,7 @@ import { useLocation } from 'wouter';
 import {
   MessageCircle, Sparkles, Network, Shield, LayoutGrid,
   Plus, MessageSquare, Trash2, X, HelpCircle, ExternalLink,
-  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2,
+  Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2, Sliders,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -34,6 +34,7 @@ const GALLERY_NAV = { path: '/gallery', label: 'Gallery', icon: LayoutGrid } as 
 const SECONDARY_ITEMS = [
   { path: '/favorites', label: 'Favorites', icon: Star },
   { path: '/templates', label: 'Templates', icon: BookOpen },
+  { path: '/presets', label: 'Presets', icon: Sliders },
   { path: '/models', label: 'Models', icon: Cpu },
   { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   { path: '/tokenizer', label: 'Tokenizer', icon: Hash },
@@ -285,6 +286,7 @@ export default function ContextualSidebar({ onClose, collapsed }: Props) {
 
           {(location.startsWith('/favorites')
             || location.startsWith('/templates')
+            || location.startsWith('/presets')
             || location.startsWith('/models')
             || location.startsWith('/analytics')
             || location.startsWith('/tokenizer')

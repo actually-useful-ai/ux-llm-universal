@@ -24,6 +24,7 @@ const VoicePage = lazy(() => import("./pages/VoicePage"));
 const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
 const CollectionsPage = lazy(() => import("./pages/CollectionsPage"));
 const TemplatesPage = lazy(() => import("./pages/TemplatesPage"));
+const PresetsPage = lazy(() => import("./pages/PresetsPage"));
 const ModelsPage = lazy(() => import("./pages/ModelsPage"));
 const AnalyticsPage = lazy(() => import("./pages/AnalyticsPage"));
 const TokenizerPage = lazy(() => import("./pages/TokenizerPage"));
@@ -58,6 +59,7 @@ function AppRouter() {
             <Route path="/voice" component={VoicePage} />
             <Route path="/favorites" component={FavoritesPage} />
             <Route path="/templates" component={TemplatesPage} />
+            <Route path="/presets" component={PresetsPage} />
             <Route path="/models" component={ModelsPage} />
             <Route path="/analytics" component={AnalyticsPage} />
             <Route path="/tokenizer" component={TokenizerPage} />
