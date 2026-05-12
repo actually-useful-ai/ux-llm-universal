@@ -25,7 +25,7 @@ const DEFAULT_MODELS: Record<string, string> = {
 // --- Fallback models (used when live fetch fails) ---
 
 const FALLBACK_MODELS: Record<string, string[]> = {
-  anthropic: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001'],
+  anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
   xai: ['grok-4-0709', 'grok-3', 'grok-3-mini'],
   openai: ['gpt-5-mini', 'gpt-5.4', 'gpt-4.1', 'o4-mini', 'o3'],
   gemini: ['gemini-3.1-flash-lite-preview', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
@@ -67,22 +67,25 @@ const PROVIDER_CAPABILITIES: Record<string, ProviderCapability[]> = {
 };
 
 // Image generation models per provider (subset of full model list)
+// dall-e-3 was retired by OpenAI on 2026-03-04; gpt-image-1 is current.
 const IMAGE_GEN_MODELS: Record<string, string[]> = {
-  openai: ['dall-e-3', 'dall-e-2', 'gpt-image-1'],
-  xai: ['grok-imagine-image'],
+  openai: ['gpt-image-1'],
+  xai: ['grok-imagine-image-quality', 'grok-2-image', 'grok-imagine-image'],
+  gemini: ['imagen-4.0-generate-001', 'imagen-4.0-fast-generate-001', 'imagen-4.0-ultra-generate-001'],
   huggingface: ['black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'stabilityai/stable-diffusion-xl-base-1.0'],
 };
 
 const IMAGE_GEN_DEFAULTS: Record<string, string> = {
-  openai: 'dall-e-3',
-  xai: 'grok-imagine-image',
+  openai: 'gpt-image-1',
+  xai: 'grok-imagine-image-quality',
+  gemini: 'imagen-4.0-generate-001',
   huggingface: 'black-forest-labs/FLUX.1-schnell',
 };
 
 // Vision-capable models per provider (models that accept images)
 const VISION_MODELS: Record<string, string[]> = {
   openai: ['gpt-5-mini', 'gpt-5.4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini'],
-  anthropic: ['claude-sonnet-4-6', 'claude-opus-4-6', 'claude-haiku-4-5-20251001'],
+  anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
   xai: ['grok-4-0709', 'grok-3', 'grok-2-vision-1212'],
   gemini: ['gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
   mistral: ['pixtral-large-latest', 'pixtral-12b-2409'],
@@ -98,16 +101,18 @@ const VISION_DEFAULTS: Record<string, string> = {
 };
 
 // TTS models per provider
+// xAI's /v1/tts API is voice-keyed (voice_id), not model-keyed; the entry
+// below is a label for the picker, not a wire model id.
 const TTS_MODELS: Record<string, string[]> = {
-  openai: ['tts-1', 'tts-1-hd', 'gpt-4o-mini-tts'],
-  xai: ['tts-1'],
-  gemini: ['gemini-2.5-flash-preview-tts'],
+  openai: ['gpt-4o-mini-tts', 'tts-1-hd', 'tts-1'],
+  xai: ['grok-tts'],
+  gemini: ['gemini-3.1-flash-tts-preview', 'gemini-2.5-flash-preview-tts'],
 };
 
 const TTS_DEFAULTS: Record<string, string> = {
-  openai: 'tts-1',
-  xai: 'tts-1',
-  gemini: 'gemini-2.5-flash-preview-tts',
+  openai: 'gpt-4o-mini-tts',
+  xai: 'grok-tts',
+  gemini: 'gemini-3.1-flash-tts-preview',
 };
 
 // STT models per provider
@@ -1001,12 +1006,15 @@ export function registerDreamerProxy(app: Express) {
       }
 
       // Direct OpenAI call — model-aware params (gpt-image-1 vs dall-e-3 vs dall-e-2)
+      // gpt-image-1 is the current default; dall-e-3 was retired 2026-03-04
+      // but legacy branches remain in case a caller pins the older id.
       if (provider === 'openai' && apiKey) {
-        const isGptImage1 = (model || 'dall-e-3').startsWith('gpt-image-1');
-        const isDalle3 = (model || 'dall-e-3') === 'dall-e-3';
+        const resolvedModel = model || 'gpt-image-1';
+        const isGptImage1 = resolvedModel.startsWith('gpt-image-1');
+        const isDalle3 = resolvedModel === 'dall-e-3';
         const body: Record<string, unknown> = {
           prompt,
-          model: model || 'dall-e-3',
+          model: resolvedModel,
           n: isDalle3 ? 1 : Math.min(n, isGptImage1 ? 10 : 4),
           size: size || '1024x1024',
         };
@@ -1580,7 +1588,7 @@ export function registerDreamerProxy(app: Express) {
         res.json({ audioUrl: `data:audio/mpeg;base64,${audioBuffer.toString('base64')}`, codec: 'mp3' });
       } else if (provider === 'gemini' && keys.gemini) {
         // Direct Gemini TTS via generateContent with speechConfig
-        const ttsModel = model || 'gemini-2.5-flash-preview-tts';
+        const ttsModel = model || 'gemini-3.1-flash-tts-preview';
         const apiRes = await fetch(
           `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${keys.gemini}`,
           {
