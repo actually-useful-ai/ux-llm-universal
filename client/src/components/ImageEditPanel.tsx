@@ -25,7 +25,7 @@ interface EditResult {
 
 // Providers that support image editing
 const EDIT_PROVIDERS = [
-  { id: 'xai', name: 'xAI (Grok)', model: 'grok-2-image' },
+  { id: 'xai', name: 'xAI (Grok)', model: 'grok-imagine-image-quality' },
   { id: 'openai', name: 'OpenAI', model: 'dall-e-2' },
   { id: 'gemini', name: 'Google Gemini', model: 'gemini-2.0-flash-exp' },
 ];
@@ -43,7 +43,7 @@ export default function ImageEditPanel() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [selectedProvider, setSelectedProvider] = useState('xai');
-  const [selectedModel, setSelectedModel] = useState('grok-2-image');
+  const [selectedModel, setSelectedModel] = useState('grok-imagine-image-quality');
   const [compareIndex, setCompareIndex] = useState<number | null>(null);
   const [comparePosition, setComparePosition] = useState(50); // percentage
 

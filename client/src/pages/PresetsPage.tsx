@@ -29,8 +29,8 @@ const FEATURE_TYPES: Array<{ value: FeatureType; label: string; icon: typeof Ima
 ];
 
 const DEFAULT_SETTINGS: Record<FeatureType, Record<string, unknown>> = {
-  image_gen: { provider: 'xai', model: 'grok-2-image', size: '1024x1024', quality: 'high' },
-  image_edit: { provider: 'xai', model: 'grok-2-image', strength: 0.65, preserveSubject: true },
+  image_gen: { provider: 'xai', model: 'grok-imagine-image-quality', size: '1024x1024', quality: 'high' },
+  image_edit: { provider: 'xai', model: 'grok-imagine-image-quality', strength: 0.65, preserveSubject: true },
   video_gen: { provider: 'xai', model: 'grok-video', duration: 8, aspectRatio: '16:9' },
   video_edit: { provider: 'xai', model: 'grok-video', duration: 8, mode: 'extend' },
   tts: { provider: 'xai', model: 'grok-voice', voice: 'alloy', format: 'mp3' },
@@ -288,7 +288,7 @@ export default function PresetsPage() {
                 rows={20}
                 className="w-full rounded-2xl border border-border bg-card px-4 py-3 font-mono text-sm outline-none transition-colors focus:border-primary/40"
                 spellCheck={false}
-                placeholder='{"model":"grok-2-image","size":"1024x1024"}'
+                placeholder='{"model":"grok-imagine-image-quality","size":"1024x1024"}'
               />
             </div>
 

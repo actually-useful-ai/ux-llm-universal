@@ -15,7 +15,7 @@ type TokenizeResult = {
 export default function TokenizerPage() {
   const { providers } = useProviders();
   const [text, setText] = useState('');
-  const [model, setModel] = useState('grok-4-0709');
+  const [model, setModel] = useState('grok-4.3');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<TokenizeResult | null>(null);
 

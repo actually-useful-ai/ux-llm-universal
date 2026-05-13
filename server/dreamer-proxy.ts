@@ -12,7 +12,7 @@ import type { Express, Request, Response } from 'express';
 
 const DEFAULT_MODELS: Record<string, string> = {
   anthropic: 'claude-sonnet-4-6',
-  xai: 'grok-4-0709',
+  xai: 'grok-4.3',
   openai: 'gpt-5-mini',
   gemini: 'gemini-3.1-flash-lite-preview',
   mistral: 'mistral-large-latest',
@@ -26,7 +26,7 @@ const DEFAULT_MODELS: Record<string, string> = {
 
 const FALLBACK_MODELS: Record<string, string[]> = {
   anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
-  xai: ['grok-4-0709', 'grok-3', 'grok-3-mini'],
+  xai: ['grok-4.3', 'grok-4.20-0309-reasoning', 'grok-4.20-0309-non-reasoning', 'grok-4.20-multi-agent-0309'],
   openai: ['gpt-5-mini', 'gpt-5.4', 'gpt-4.1', 'o4-mini', 'o3'],
   gemini: ['gemini-3.1-flash-lite-preview', 'gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
   mistral: ['mistral-large-latest', 'mistral-small-latest', 'codestral-latest'],
@@ -68,9 +68,10 @@ const PROVIDER_CAPABILITIES: Record<string, ProviderCapability[]> = {
 
 // Image generation models per provider (subset of full model list)
 // dall-e-3 was retired by OpenAI on 2026-03-04; gpt-image-1 is current.
+// grok-2-image and grok-imagine-image-pro retired by xAI on 2026-05-15.
 const IMAGE_GEN_MODELS: Record<string, string[]> = {
   openai: ['gpt-image-1'],
-  xai: ['grok-imagine-image-quality', 'grok-2-image', 'grok-imagine-image'],
+  xai: ['grok-imagine-image-quality', 'grok-imagine-image'],
   gemini: ['imagen-4.0-generate-001', 'imagen-4.0-fast-generate-001', 'imagen-4.0-ultra-generate-001'],
   huggingface: ['black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'stabilityai/stable-diffusion-xl-base-1.0'],
 };
@@ -86,7 +87,7 @@ const IMAGE_GEN_DEFAULTS: Record<string, string> = {
 const VISION_MODELS: Record<string, string[]> = {
   openai: ['gpt-5-mini', 'gpt-5.4', 'gpt-4.1', 'gpt-4.1-mini', 'gpt-4o', 'gpt-4o-mini'],
   anthropic: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5'],
-  xai: ['grok-4-0709', 'grok-3', 'grok-2-vision-1212'],
+  xai: ['grok-4.3', 'grok-4.20-0309-reasoning'],
   gemini: ['gemini-3.1-pro-preview', 'gemini-3.1-flash-lite-preview', 'gemini-3-flash-preview', 'gemini-2.5-flash'],
   mistral: ['pixtral-large-latest', 'pixtral-12b-2409'],
   ollama: ['llava', 'llava-llama3', 'llava-phi3', 'moondream', 'bakllava'],
@@ -95,7 +96,7 @@ const VISION_MODELS: Record<string, string[]> = {
 const VISION_DEFAULTS: Record<string, string> = {
   openai: 'gpt-5-mini',
   anthropic: 'claude-sonnet-4-6',
-  xai: 'grok-4-0709',
+  xai: 'grok-4.3',
   gemini: 'gemini-3.1-flash-lite-preview',
   mistral: 'pixtral-large-latest',
 };
