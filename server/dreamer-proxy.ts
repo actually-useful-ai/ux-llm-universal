@@ -7,6 +7,7 @@
 // ============================================================
 
 import type { Express, Request, Response } from 'express';
+import { persistMediaFromUrl, persistMediaFromBase64, persistMediaFromBuffer } from './_core/persist-media';
 
 // --- Default models per provider (newest as of Mar 2026) ---
 
@@ -998,9 +999,30 @@ export function registerDreamerProxy(app: Express) {
         }
 
         const data = await apiRes.json() as { data?: Array<{ url?: string; b64_json?: string; revised_prompt?: string }> };
-        const images = (data.data || []).map(d =>
-          d.url || (d.b64_json ? `data:image/png;base64,${d.b64_json}` : ''),
-        ).filter(Boolean);
+        const images = await Promise.all(
+          (data.data || [])
+            .map(async d => {
+              if (d.url) {
+                try {
+                  const persisted = await persistMediaFromUrl(d.url, { kind: 'image', provider: 'xai' });
+                  return persisted.publicUrl;
+                } catch (e) {
+                  console.warn('[persist] xai image url persist failed, falling back to upstream:', (e as Error).message);
+                  return d.url;
+                }
+              }
+              if (d.b64_json) {
+                try {
+                  const persisted = await persistMediaFromBase64(d.b64_json, { kind: 'image', provider: 'xai', ext: 'png' });
+                  return persisted.publicUrl;
+                } catch (e) {
+                  console.warn('[persist] xai image b64 persist failed, falling back to data URI:', (e as Error).message);
+                  return `data:image/png;base64,${d.b64_json}`;
+                }
+              }
+              return '';
+            }),
+        ).then(arr => arr.filter(Boolean));
         const revisedPrompt = data.data?.[0]?.revised_prompt;
         res.json({ images, revised_prompt: revisedPrompt });
         return;
@@ -1048,9 +1070,30 @@ export function registerDreamerProxy(app: Express) {
         }
 
         const data = await apiRes.json() as { data?: Array<{ url?: string; b64_json?: string; revised_prompt?: string }> };
-        const images = (data.data || []).map(d =>
-          d.url || (d.b64_json ? `data:image/png;base64,${d.b64_json}` : ''),
-        ).filter(Boolean);
+        const images = await Promise.all(
+          (data.data || [])
+            .map(async d => {
+              if (d.url) {
+                try {
+                  const persisted = await persistMediaFromUrl(d.url, { kind: 'image', provider: 'openai' });
+                  return persisted.publicUrl;
+                } catch (e) {
+                  console.warn('[persist] openai image url persist failed, falling back to upstream:', (e as Error).message);
+                  return d.url;
+                }
+              }
+              if (d.b64_json) {
+                try {
+                  const persisted = await persistMediaFromBase64(d.b64_json, { kind: 'image', provider: 'openai', ext: 'png' });
+                  return persisted.publicUrl;
+                } catch (e) {
+                  console.warn('[persist] openai image b64 persist failed, falling back to data URI:', (e as Error).message);
+                  return `data:image/png;base64,${d.b64_json}`;
+                }
+              }
+              return '';
+            }),
+        ).then(arr => arr.filter(Boolean));
         const revisedPrompt = data.data?.[0]?.revised_prompt;
         res.json({ images, revised_prompt: revisedPrompt });
         return;
@@ -1190,6 +1233,20 @@ export function registerDreamerProxy(app: Express) {
           return;
         }
 
+        // xAI returns 404 / 410 for request IDs it no longer knows about
+        // (job purged, > TTL, or never existed). Don't throw — that turns
+        // the client poller into a 500 loop. Map to the 'failed' terminal
+        // state so the client stops polling. The error string carries the
+        // "expired" semantic for the UI.
+        if (apiRes.status === 404 || apiRes.status === 410) {
+          res.json({
+            status: 'failed',
+            error: 'xAI no longer has a record of this video request (expired or purged).',
+            requestId,
+          });
+          return;
+        }
+
         if (!apiRes.ok) {
           const errData = await apiRes.json().catch(() => ({})) as { error?: string };
           throw new Error(errData.error || `Status check failed: ${apiRes.status}`);
@@ -1202,9 +1259,16 @@ export function registerDreamerProxy(app: Express) {
         };
 
         if (data.status === 'done' && data.video?.url) {
+          let videoUrl = data.video.url;
+          try {
+            const persisted = await persistMediaFromUrl(videoUrl, { kind: 'video', provider: 'xai' });
+            videoUrl = persisted.publicUrl;
+          } catch (e) {
+            console.warn('[persist] xai video persist failed, returning upstream temp URL:', (e as Error).message);
+          }
           res.json({
             status: 'done',
-            video: { url: data.video.url },
+            video: { url: videoUrl },
             requestId,
           });
         } else if (data.status === 'expired' || data.status === 'failed' || data.error) {
@@ -1234,20 +1298,26 @@ export function registerDreamerProxy(app: Express) {
         };
 
         if (data.status === 'completed') {
-          // Video content available at GET /v1/videos/{id}/content/video
+          // Video content available at GET /v1/videos/{id}/content/video — needs Bearer auth
+          // to download, so the client can't fetch it directly. Persist the bytes to local
+          // disk and return a same-origin public URL the browser can play forever.
           const contentUrl = `https://api.openai.com/v1/videos/${encodeURIComponent(requestId)}/content/video`;
-          // Return the content URL — client can stream directly with auth, or we proxy it
-          // For simplicity, fetch the video and return as data URL
           try {
             const videoRes = await fetch(contentUrl, {
               headers: { Authorization: `Bearer ${apiKey}` },
             });
             if (videoRes.ok) {
               const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
-              const videoDataUrl = `data:video/mp4;base64,${videoBuffer.toString('base64')}`;
-              res.json({ status: 'done', video: { url: videoDataUrl }, requestId });
+              try {
+                const persisted = await persistMediaFromBuffer(videoBuffer, { kind: 'video', provider: 'openai', ext: 'mp4' });
+                res.json({ status: 'done', video: { url: persisted.publicUrl }, requestId });
+              } catch (e) {
+                console.warn('[persist] openai video persist failed, falling back to data URL:', (e as Error).message);
+                const videoDataUrl = `data:video/mp4;base64,${videoBuffer.toString('base64')}`;
+                res.json({ status: 'done', video: { url: videoDataUrl }, requestId });
+              }
             } else {
-              // Fallback: return the content endpoint URL directly
+              // Upstream content fetch failed — return the (authed) endpoint URL as a last resort
               res.json({ status: 'done', video: { url: contentUrl }, requestId });
             }
           } catch {
