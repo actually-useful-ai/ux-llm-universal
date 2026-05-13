@@ -1091,7 +1091,7 @@ export function registerDreamerProxy(app: Express) {
   app.post('/api/video/generate', async (req: Request, res: Response) => {
     const {
       prompt, provider = 'xai', model, duration, resolution,
-      aspect_ratio, image_url, maxRetries = 0,
+      aspect_ratio, image_url, reference_images, maxRetries = 0,
     } = req.body;
 
     if (!prompt) {
@@ -1112,7 +1112,8 @@ export function registerDreamerProxy(app: Express) {
         if (duration) body.duration = duration;
         if (resolution) body.resolution = resolution;
         if (aspect_ratio) body.aspect_ratio = aspect_ratio;
-        if (image_url) body.image_url = image_url;
+        if (image_url) body.image = { url: image_url, type: 'image_url' };
+        if (reference_images) body.reference_images = reference_images;
 
         const apiRes = await fetch('https://api.x.ai/v1/videos/generations', {
           method: 'POST',
@@ -1274,7 +1275,9 @@ export function registerDreamerProxy(app: Express) {
   // ---- Video Edit ----
 
   app.post('/api/video/edit', async (req: Request, res: Response) => {
-    const { prompt, video_url, provider = 'xai', resolution, aspect_ratio, duration } = req.body;
+    const { prompt, video_url, provider = 'xai', model } = req.body;
+    // resolution, aspect_ratio, duration are intentionally not extracted —
+    // xAI /v1/videos/edits inherits these from the source video.
 
     if (!prompt || !video_url) {
       res.status(400).json({ error: 'prompt and video_url are required' });
@@ -1290,10 +1293,11 @@ export function registerDreamerProxy(app: Express) {
 
     try {
       if (provider === 'xai') {
-        const body: Record<string, unknown> = { prompt, video_url };
-        if (resolution) body.resolution = resolution;
-        if (aspect_ratio) body.aspect_ratio = aspect_ratio;
-        if (duration) body.duration = duration;
+        const body: Record<string, unknown> = {
+          model: model || 'grok-imagine-video',
+          prompt,
+          video: { url: video_url },
+        };
 
         const apiRes = await fetch('https://api.x.ai/v1/videos/edits', {
           method: 'POST',
@@ -1320,7 +1324,7 @@ export function registerDreamerProxy(app: Express) {
   // ---- Video Extend ----
 
   app.post('/api/video/extend', async (req: Request, res: Response) => {
-    const { video_url, prompt, provider = 'xai' } = req.body;
+    const { video_url, prompt, provider = 'xai', model, duration } = req.body;
 
     if (!video_url) {
       res.status(400).json({ error: 'video_url is required' });
@@ -1336,10 +1340,14 @@ export function registerDreamerProxy(app: Express) {
 
     try {
       if (provider === 'xai') {
-        const body: Record<string, unknown> = { video_url };
+        const body: Record<string, unknown> = {
+          model: model || 'grok-imagine-video',
+          video: { url: video_url },
+        };
         if (prompt) body.prompt = prompt;
+        if (duration) body.duration = duration;
 
-        const apiRes = await fetch('https://api.x.ai/v1/videos/edits', {
+        const apiRes = await fetch('https://api.x.ai/v1/videos/extensions', {
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -1385,9 +1393,9 @@ export function registerDreamerProxy(app: Express) {
           method: 'POST',
           headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            model: model || 'grok-imagine-image-quality',
             prompt,
-            image_url,
-            model: model || 'grok-imagine-image',
+            image: { url: image_url, type: 'image_url' },
             n,
           }),
         });
