@@ -7,6 +7,7 @@
 // ============================================================
 
 import type { Express, Request, Response } from 'express';
+import { randomUUID } from 'node:crypto';
 import { persistMediaFromUrl, persistMediaFromBase64, persistMediaFromBuffer } from './_core/persist-media';
 
 // --- Default models per provider (newest as of Mar 2026) ---
@@ -35,6 +36,7 @@ const FALLBACK_MODELS: Record<string, string[]> = {
   perplexity: ['sonar-pro', 'sonar'],
   huggingface: ['Qwen/Qwen3.5-9B', 'meta-llama/Llama-3.1-8B-Instruct', 'deepseek-ai/DeepSeek-R1', 'zai-org/GLM-5'],
   manus: ['manus-1.6', 'manus-1.6-lite', 'manus-1.6-max'],
+  runware: ['runware:101@1', 'runware:100@1', 'bytedance:seedream@4.5'],
 };
 
 const DISPLAY_NAMES: Record<string, string> = {
@@ -47,6 +49,7 @@ const DISPLAY_NAMES: Record<string, string> = {
   perplexity: 'Perplexity',
   huggingface: 'HuggingFace',
   manus: 'Manus',
+  runware: 'Runware',
 };
 
 // --- Provider capabilities ---
@@ -65,6 +68,7 @@ const PROVIDER_CAPABILITIES: Record<string, ProviderCapability[]> = {
   perplexity: ['chat'],
   huggingface: ['chat', 'image_generation'],
   manus: ['chat'],
+  runware: ['image_generation'],
 };
 
 // Image generation models per provider (subset of full model list)
@@ -75,6 +79,7 @@ const IMAGE_GEN_MODELS: Record<string, string[]> = {
   xai: ['grok-imagine-image-quality', 'grok-imagine-image'],
   gemini: ['imagen-4.0-generate-001', 'imagen-4.0-fast-generate-001', 'imagen-4.0-ultra-generate-001'],
   huggingface: ['black-forest-labs/FLUX.1-dev', 'black-forest-labs/FLUX.1-schnell', 'stabilityai/stable-diffusion-xl-base-1.0'],
+  runware: ['runware:101@1', 'runware:100@1', 'bytedance:seedream@4.5'],
 };
 
 const IMAGE_GEN_DEFAULTS: Record<string, string> = {
@@ -82,6 +87,7 @@ const IMAGE_GEN_DEFAULTS: Record<string, string> = {
   xai: 'grok-imagine-image-quality',
   gemini: 'imagen-4.0-generate-001',
   huggingface: 'black-forest-labs/FLUX.1-schnell',
+  runware: 'runware:101@1',
 };
 
 // Vision-capable models per provider (models that accept images)
@@ -300,6 +306,7 @@ function getProviderKeys(): Record<string, string> {
     perplexity: process.env.PERPLEXITY_API_KEY || '',
     huggingface: process.env.HF_API_KEY || '',
     manus: process.env.MANUS_API_KEY || '',
+    runware: process.env.RUNWARE_API_KEY || '',
   };
 }
 
@@ -637,6 +644,124 @@ async function streamAnthropic(
     reader.releaseLock();
     res.end();
   }
+}
+
+// ============================================================
+// Runware image generation
+// ============================================================
+// Runware is a task-array API at a single base URL — the taskType picks
+// the route. Architecture is derived from the model id prefix. Proprietary
+// architectures (e.g. bytedance:seedream@4.5) don't accept checkNSFW and
+// have their own pixel envelopes; open-source ones (runware:, civitai:)
+// accept checkNSFW:false to keep NSFW detection tagging off.
+
+const RUNWARE_LARGE_PIXEL_PREFIXES = new Set(['bytedance']);
+const RUNWARE_NO_CHECKNSFW_PREFIXES = ['bytedance:'];
+
+const RUNWARE_DIMS_STANDARD: Record<string, { width: number; height: number }> = {
+  '1:1':  { width: 1024, height: 1024 },
+  '16:9': { width: 1344, height: 768 },
+  '9:16': { width: 768,  height: 1344 },
+  '4:3':  { width: 1152, height: 896 },
+  '3:4':  { width: 896,  height: 1152 },
+  '3:2':  { width: 1216, height: 832 },
+  '2:3':  { width: 832,  height: 1216 },
+  '2:1':  { width: 1408, height: 704 },
+  '1:2':  { width: 704,  height: 1408 },
+  'auto': { width: 1024, height: 1024 },
+};
+
+const RUNWARE_DIMS_LARGE: Record<string, { width: number; height: number }> = {
+  '1:1':  { width: 2048, height: 2048 },
+  '16:9': { width: 2560, height: 1440 },
+  '9:16': { width: 1440, height: 2560 },
+  '4:3':  { width: 2304, height: 1728 },
+  '3:4':  { width: 1728, height: 2304 },
+  '3:2':  { width: 2304, height: 1536 },
+  '2:3':  { width: 1536, height: 2304 },
+  '2:1':  { width: 2560, height: 1280 },
+  '1:2':  { width: 1280, height: 2560 },
+  'auto': { width: 2048, height: 2048 },
+};
+
+function runwareArchPrefix(model: string): string {
+  const idx = model.indexOf(':');
+  return idx > 0 ? model.slice(0, idx) : '';
+}
+
+function runwareSupportsCheckNSFW(model: string): boolean {
+  return !RUNWARE_NO_CHECKNSFW_PREFIXES.some(p => model.startsWith(p));
+}
+
+function runwareDimsForModel(
+  model: string,
+  size: string | undefined,
+  aspectRatio: string | undefined,
+  width: number | undefined,
+  height: number | undefined,
+): { width: number; height: number } {
+  if (width && height) return { width, height };
+  if (size) {
+    const m = /^(\d+)\s*x\s*(\d+)$/i.exec(size);
+    if (m) return { width: parseInt(m[1], 10), height: parseInt(m[2], 10) };
+  }
+  const needsLarge = RUNWARE_LARGE_PIXEL_PREFIXES.has(runwareArchPrefix(model));
+  const table = needsLarge ? RUNWARE_DIMS_LARGE : RUNWARE_DIMS_STANDARD;
+  if (aspectRatio && table[aspectRatio]) return table[aspectRatio];
+  return needsLarge ? { width: 2048, height: 2048 } : { width: 1024, height: 1024 };
+}
+
+async function generateRunwareImages(
+  apiKey: string,
+  params: {
+    prompt: string;
+    model: string;
+    n: number;
+    width: number;
+    height: number;
+    seed?: number;
+    negative_prompt?: string;
+  },
+): Promise<{ url: string; cost?: number; seed?: number }[]> {
+  const task: Record<string, unknown> = {
+    taskType: 'imageInference',
+    taskUUID: randomUUID(),
+    model: params.model,
+    positivePrompt: params.prompt,
+    width: params.width,
+    height: params.height,
+    numberResults: Math.min(Math.max(params.n, 1), 4),
+    includeCost: true,
+  };
+  if (runwareSupportsCheckNSFW(params.model)) {
+    task.checkNSFW = false;
+    if (params.negative_prompt) task.negativePrompt = params.negative_prompt;
+  }
+  if (params.seed != null) task.seed = params.seed;
+
+  const apiRes = await fetch('https://api.runware.ai/v1', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify([task]),
+  });
+
+  if (!apiRes.ok) {
+    const text = await apiRes.text().catch(() => '');
+    throw new Error(`Runware HTTP ${apiRes.status}: ${text.slice(0, 200)}`);
+  }
+
+  const data = await apiRes.json() as {
+    data?: Array<{ imageURL?: string; cost?: number; seed?: number }>;
+    errors?: Array<{ code?: string; message?: string }>;
+  };
+
+  if (data.errors && data.errors.length > 0) {
+    const e = data.errors[0];
+    throw new Error(`Runware ${e.code || 'error'}: ${e.message || 'unknown'}`);
+  }
+  const items = (data.data || []).filter(d => d.imageURL);
+  if (items.length === 0) throw new Error('Runware returned no images');
+  return items.map(d => ({ url: d.imageURL!, cost: d.cost, seed: d.seed }));
 }
 
 // ============================================================
@@ -1096,6 +1221,50 @@ export function registerDreamerProxy(app: Express) {
         ).then(arr => arr.filter(Boolean));
         const revisedPrompt = data.data?.[0]?.revised_prompt;
         res.json({ images, revised_prompt: revisedPrompt });
+        return;
+      }
+
+      // Direct Runware call — task-array API at a single base URL.
+      // checkNSFW:false is sent for architectures that support it (FLUX,
+      // SDXL, Civitai). Seedream/proprietary archs reject the param, so
+      // we omit it. Dimensions resolve per-architecture (Seedream needs
+      // ≥3.6M pixels).
+      if (provider === 'runware' && apiKey) {
+        const resolvedModel = model || 'runware:101@1';
+        // Read size + dims off the raw body so the route-level `size`
+        // default ('1024x1024') doesn't override architecture-aware sizing
+        // for models like Seedream that need ≥3.6M pixels.
+        const rawBody = req.body as { size?: string; width?: number; height?: number };
+        const { width, height } = runwareDimsForModel(
+          resolvedModel,
+          rawBody.size,
+          aspect_ratio,
+          rawBody.width,
+          rawBody.height,
+        );
+
+        const results = await generateRunwareImages(apiKey, {
+          prompt,
+          model: resolvedModel,
+          n: Math.min(Math.max(n, 1), 4),
+          width,
+          height,
+          seed: seed ?? undefined,
+          negative_prompt: negative_prompt ?? undefined,
+        });
+
+        const images = await Promise.all(
+          results.map(async r => {
+            try {
+              const persisted = await persistMediaFromUrl(r.url, { kind: 'image', provider: 'runware' });
+              return persisted.publicUrl;
+            } catch (e) {
+              console.warn('[persist] runware image url persist failed, falling back to upstream:', (e as Error).message);
+              return r.url;
+            }
+          }),
+        );
+        res.json({ images });
         return;
       }
 

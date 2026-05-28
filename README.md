@@ -168,6 +168,7 @@ COHERE_API_KEY=
 PERPLEXITY_API_KEY=
 HF_API_KEY=
 MANUS_API_KEY=
+RUNWARE_API_KEY=        # image generation only (FLUX, SDXL, Seedream)
 
 # Dreamer API gateway (optional, for remote tool execution)
 DREAMER_API_URL=
