@@ -139,3 +139,134 @@ export function generationThrottle(req: Request, res: Response, next: NextFuncti
 
   next();
 }
+
+// ============================================================
+// Stage 2 of the universal merge — env-tunable limiters lifted
+// from ux-llm-media's server/_core/rate-limit.ts. These guard the
+// SSE chat stream (/api/xai/chat/stream), the download proxy
+// (/api/download), and the expensive tRPC generation procedures.
+// They keep their own state, separate from generationThrottle
+// above (which stays untouched on the Express proxy paths).
+// ============================================================
+
+// ─── Tunables (env-overridable) ──────────────────────────────────────────────
+const MEDIA_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS || '', 10) || 10 * 60 * 1000; // 10 min
+const MEDIA_MAX_PER_WINDOW = parseInt(process.env.RATE_LIMIT_MAX || '', 10) || 30; // 30 req / window / IP
+const MEDIA_MAX_CONCURRENT = parseInt(process.env.RATE_LIMIT_CONCURRENCY || '', 10) || 8; // global in-flight cap
+
+// ─── Layer 1: per-IP sliding window ──────────────────────────────────────────
+// Map of IP → ascending list of request timestamps within the window.
+const mediaHits = new Map<string, number[]>();
+let mediaLastSweep = Date.now();
+
+/** Drop stale IP buckets so the map cannot grow without bound. */
+function mediaSweep(now: number): void {
+  if (now - mediaLastSweep < MEDIA_WINDOW_MS) return;
+  mediaLastSweep = now;
+  const stale: string[] = [];
+  mediaHits.forEach((times: number[], ip: string) => {
+    const fresh = times.filter((t: number) => now - t < MEDIA_WINDOW_MS);
+    if (fresh.length === 0) stale.push(ip);
+    else mediaHits.set(ip, fresh);
+  });
+  for (const ip of stale) mediaHits.delete(ip);
+}
+
+/**
+ * Express middleware: enforce the per-IP request budget. On overflow,
+ * respond 429 with a Retry-After (seconds until the oldest in-window
+ * request ages out) and do not call next().
+ */
+export function perIpRateLimit(req: Request, res: Response, next: NextFunction): void {
+  const now = Date.now();
+  mediaSweep(now);
+
+  const ip = clientIp(req);
+  const times = (mediaHits.get(ip) || []).filter((t: number) => now - t < MEDIA_WINDOW_MS);
+
+  if (times.length >= MEDIA_MAX_PER_WINDOW) {
+    const oldest = times[0];
+    const retryMs = Math.max(0, MEDIA_WINDOW_MS - (now - oldest));
+    const retrySec = Math.ceil(retryMs / 1000);
+    res.setHeader('Retry-After', String(retrySec));
+    res.status(429).json({
+      error: 'Rate limit exceeded. Slow down and try again shortly.',
+      retryAfter: retrySec,
+    });
+    return;
+  }
+
+  times.push(now);
+  mediaHits.set(ip, times);
+  next();
+}
+
+// ─── Layer 2: global concurrency cap ─────────────────────────────────────────
+let mediaInFlight = 0;
+
+/**
+ * Express middleware: cap simultaneous in-flight expensive requests.
+ * When saturated, respond 503 + Retry-After immediately. Otherwise
+ * increment the counter and release it exactly once when the response
+ * finishes or the connection closes.
+ */
+export function concurrencyLimit(req: Request, res: Response, next: NextFunction): void {
+  if (mediaInFlight >= MEDIA_MAX_CONCURRENT) {
+    res.setHeader('Retry-After', '5');
+    res.status(503).json({
+      error: 'Server is busy handling other generations. Try again in a moment.',
+      retryAfter: 5,
+    });
+    return;
+  }
+
+  mediaInFlight++;
+  let released = false;
+  const release = () => {
+    if (released) return;
+    released = true;
+    mediaInFlight = Math.max(0, mediaInFlight - 1);
+  };
+  res.on('finish', release);
+  res.on('close', release);
+
+  next();
+}
+
+/**
+ * tRPC dispatches every procedure through a single POST /api/trpc/<router.proc>
+ * mount, so a path-based filter decides which procedures count as
+ * "expensive generation". The set below is the exact list of provider-cost
+ * producers (image / video / TTS / chat) across the routers; everything
+ * else (queries, model listings, favorites, collections, etc.) skips both
+ * limiters. tRPC may batch several procedures into one request, in which
+ * case the comma-joined procedure list in the path is matched as a whole,
+ * so a batch containing any generation procedure is throttled.
+ */
+const GENERATION_PROCEDURES = new Set([
+  'imageGenerate',
+  'imageEdit',
+  'videoGenerate',
+  'videoEdit',
+  'videoExtend',
+  'videoCreate',
+  'tts',
+  'ttsGenerate',
+  'chat',
+  'createResponse',
+]);
+
+/**
+ * True if this tRPC request path targets an expensive generation procedure.
+ * The procedure name is the last "<router>.<proc>" segment of the path; tRPC
+ * batching joins multiple procedures with commas, so split on both.
+ */
+export function isTrpcGenerationPath(path: string): boolean {
+  // Strip the /api/trpc/ prefix if present, then split a possible batch list.
+  const tail = path.replace(/^.*\/api\/trpc\//, '');
+  for (const seg of tail.split(',')) {
+    const proc = seg.split('.').pop()?.trim() ?? '';
+    if (GENERATION_PROCEDURES.has(proc)) return true;
+  }
+  return false;
+}

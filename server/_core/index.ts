@@ -10,7 +10,14 @@ import { registerManusProxy } from "../manus-proxy";
 import { registerSafeguardProxy } from "../safeguard-proxy";
 import { registerPublicArtifactProxy } from "../public-artifact-proxy";
 import { registerXaiUtilityProxy } from "../xai-utility-proxy";
-import { generationThrottle } from "../rate-limit";
+import { registerDownloadProxy } from "../download-proxy";
+import { registerXaiChatStream } from "../xai-chat-stream";
+import {
+  generationThrottle,
+  perIpRateLimit,
+  concurrencyLimit,
+  isTrpcGenerationPath,
+} from "../rate-limit";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -57,6 +64,31 @@ async function startServer() {
   registerPublicArtifactProxy(app);
   // xAI utility endpoints for realtime voice + tokenization
   registerXaiUtilityProxy(app);
+
+  // ── Media-side abuse throttling (Stage 2 of the universal merge) ────
+  // generationThrottle (above) keeps guarding the glm Express proxy
+  // paths. The env-tunable media limiters guard the SSE chat stream,
+  // the SSRF-guarded download proxy, and the expensive tRPC generation
+  // procedures (image/video/tts). Queries and cheap procedures pass.
+  app.use("/api/xai/chat/stream", perIpRateLimit, concurrencyLimit);
+  app.use("/api/download", perIpRateLimit, concurrencyLimit);
+  app.use("/api/trpc", (req, res, next) => {
+    if (!isTrpcGenerationPath(req.path)) {
+      next();
+      return;
+    }
+    // Chain per-IP then concurrency. Each limiter either calls its next()
+    // (allowed) or responds directly (429 / 503) without calling it.
+    perIpRateLimit(req, res, () => {
+      if (res.headersSent) return; // limiter already responded
+      concurrencyLimit(req, res, next);
+    });
+  });
+
+  // Streaming chat endpoint (raw SSE; tRPC doesn't stream well)
+  registerXaiChatStream(app);
+  // Download proxy for CORS-restricted media (SSRF-guarded)
+  registerDownloadProxy(app);
   // tRPC API
   app.use(
     "/api/trpc",
@@ -65,6 +97,13 @@ async function startServer() {
       createContext,
     })
   );
+  // Serve uploaded media files (media's legacy /uploads URLs + any
+  // future local-disk writes land here)
+  app.use("/uploads", express.static(
+    process.env.NODE_ENV === "development"
+      ? new URL("../../uploads", import.meta.url).pathname
+      : new URL("../uploads", import.meta.url).pathname
+  ));
   // development mode uses Vite, production mode uses static files
   if (process.env.NODE_ENV === "development") {
     await setupVite(app, server);
