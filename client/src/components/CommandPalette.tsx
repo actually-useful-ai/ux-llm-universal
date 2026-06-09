@@ -6,7 +6,7 @@
 import { useCallback } from 'react';
 import { useLocation } from 'wouter';
 import {
-  MessageCircle, Sparkles, Network, Shield, LayoutGrid,
+  MessageCircle, Sparkles, Shield, LayoutGrid,
   Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2, Sliders,
   Plus, Search, ArrowRight,
 } from 'lucide-react';
@@ -54,10 +54,6 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
           <CommandItem onSelect={() => runCommand(() => navigate('/create'))}>
             <Sparkles className="w-4 h-4" />
             <span>Go to Create</span>
-          </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate('/research'))}>
-            <Network className="w-4 h-4" />
-            <span>Go to Research</span>
           </CommandItem>
           <CommandItem onSelect={() => runCommand(() => navigate('/evaluate'))}>
             <Shield className="w-4 h-4" />
@@ -124,10 +120,6 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
           <CommandItem onSelect={() => runCommand(() => navigate('/create'))}>
             <Sparkles className="w-4 h-4" />
             <span>Generate Image</span>
-          </CommandItem>
-          <CommandItem onSelect={() => runCommand(() => navigate('/research'))}>
-            <Network className="w-4 h-4" />
-            <span>Start Research</span>
           </CommandItem>
         </CommandGroup>
 

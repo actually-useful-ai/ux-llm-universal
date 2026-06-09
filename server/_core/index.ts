@@ -7,7 +7,6 @@ import { registerOAuthRoutes } from "./oauth";
 import { registerOllamaProxy } from "../ollama-proxy";
 import { registerDreamerProxy } from "../dreamer-proxy";
 import { registerManusProxy } from "../manus-proxy";
-import { registerBeltalowdaProxy } from "../beltalowda-proxy";
 import { registerSafeguardProxy } from "../safeguard-proxy";
 import { registerPublicArtifactProxy } from "../public-artifact-proxy";
 import { registerXaiUtilityProxy } from "../xai-utility-proxy";
@@ -52,8 +51,6 @@ async function startServer() {
   registerDreamerProxy(app);
   // Manus task-based async agent proxy
   registerManusProxy(app);
-  // Beltalowda multi-agent research proxy (SSE bridge)
-  registerBeltalowdaProxy(app);
   // Content safety evaluation proxy
   registerSafeguardProxy(app);
   // Public share/showcase endpoints over existing artifact records

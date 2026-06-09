@@ -10,7 +10,6 @@ It provides one shared React + Express app for:
 - conversational chat
 - media creation
 - live voice
-- multi-agent research
 - artifact gallery, collections, favorites, and presets
 - public share/showcase pages
 
@@ -61,7 +60,7 @@ Current route surface inside `/io/chat`:
 - `/` -- converse
 - `/create` -- image, video, TTS, edit, compare
 - `/voice` -- realtime voice session bootstrap UI
-- `/research` -- Beltalowda multi-agent research
+- `/research` -- canonical tool catalog (alias of `/research/tools`)
 - `/research/tools` -- canonical tool catalog
 - `/evaluate` -- safety evaluation
 - `/gallery` -- artifact browser
@@ -197,12 +196,12 @@ client/          React SPA
   src/
     components/  Chat, media panels, settings, Manus task UI, shadcn/ui
     contexts/    ChatContext, Provider, Settings, Theme, Artifact, Job, Tool
-    pages/       Converse, Create, Voice, Research, Evaluate, Gallery, utility routes
+    pages/       Converse, Create, Voice, ResearchTools, Evaluate, Gallery, utility routes
     lib/         API clients (ollama, dreamer, manus), types, tool service
 server/          Express backend
   _core/         tRPC setup, auth context, Express bootstrap
   routers/       artifacts, collections, prompts, presets, analytics
-  *-proxy.ts     Ollama, Dreamer, Manus, Beltalowda, Safeguard, xAI utility, public artifact
+  *-proxy.ts     Ollama, Dreamer, Manus, Safeguard, xAI utility, public artifact
 shared/          Types and constants shared between client and server
 drizzle/         MySQL schema and migrations
 ```

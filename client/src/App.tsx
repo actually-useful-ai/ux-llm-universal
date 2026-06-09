@@ -17,7 +17,6 @@ import AppShell from "./components/AppShell";
 // Lazy-loaded pages
 const ConversePage = lazy(() => import("./pages/ConversePage"));
 const CreatePage = lazy(() => import("./pages/CreatePage"));
-const ResearchPage = lazy(() => import("./pages/ResearchPage"));
 const EvaluatePage = lazy(() => import("./pages/EvaluatePage"));
 const GalleryPage = lazy(() => import("./pages/GalleryPage"));
 const VoicePage = lazy(() => import("./pages/VoicePage"));
@@ -52,9 +51,8 @@ function AppRouter() {
           <Switch>
             <Route path="/" component={ConversePage} />
             <Route path="/create" component={CreatePage} />
-            <Route path="/research" component={ResearchPage} />
+            <Route path="/research" component={ResearchToolsPage} />
             <Route path="/research/tools" component={ResearchToolsPage} />
-            <Route path="/research/:taskId" component={ResearchPage} />
             <Route path="/evaluate" component={EvaluatePage} />
             <Route path="/voice" component={VoicePage} />
             <Route path="/favorites" component={FavoritesPage} />

@@ -7,7 +7,7 @@
 
 import { useLocation } from 'wouter';
 import {
-  MessageCircle, Sparkles, Network, Shield, LayoutGrid,
+  MessageCircle, Sparkles, Shield, LayoutGrid,
   Plus, MessageSquare, Trash2, X, HelpCircle, ExternalLink,
   Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2, Sliders,
 } from 'lucide-react';
@@ -26,7 +26,7 @@ const NAV_ITEMS = [
   { path: '/', label: 'Converse', icon: MessageCircle },
   { path: '/create', label: 'Create', icon: Sparkles },
   { path: '/voice', label: 'Voice', icon: Mic },
-  { path: '/research', label: 'Research', icon: Network },
+  { path: '/research', label: 'Research', icon: Wrench },
   { path: '/evaluate', label: 'Evaluate', icon: Shield },
 ] as const;
 
@@ -247,17 +247,11 @@ export default function ContextualSidebar({ onClose, collapsed }: Props) {
             </div>
           )}
 
-          {/* Research route */}
+          {/* Research route — provider tool catalog */}
           {location.startsWith('/research') && (
             <div className="px-3 py-4">
-              <p className="eyebrow mb-2">Research Tasks</p>
-              <button
-                onClick={() => handleNav('/research/tools')}
-                className="mt-1 flex items-center gap-2 text-sm text-muted-foreground/60 transition-colors hover:text-sidebar-foreground"
-              >
-                <Wrench className="h-4 w-4" />
-                Tool Catalog
-              </button>
+              <p className="eyebrow mb-2">Research Tools</p>
+              <p className="text-sm text-muted-foreground/60">Provider tool catalog</p>
             </div>
           )}
 

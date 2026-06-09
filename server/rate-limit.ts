@@ -27,14 +27,13 @@ const MAX_CONCURRENT = 8; // global in-flight expensive calls
 
 // Path prefixes that count as expensive generation endpoints.
 // Matched against req.path. Keep in sync with the proxy registrations
-// in server/_core/index.ts (ollama/dreamer/image/video/tts/beltalowda).
+// in server/_core/index.ts (ollama/dreamer/image/video/tts).
 const GENERATION_PATHS = [
   '/api/ollama/chat', // covers /api/ollama/chat and /api/ollama/chat/stream
   '/api/dreamer/chat/stream',
   '/api/image/generate',
   '/api/video/generate',
   '/api/tts/generate',
-  '/api/beltalowda/start',
 ];
 
 function isGenerationPath(path: string): boolean {
