@@ -11,6 +11,7 @@ import { registerBeltalowdaProxy } from "../beltalowda-proxy";
 import { registerSafeguardProxy } from "../safeguard-proxy";
 import { registerPublicArtifactProxy } from "../public-artifact-proxy";
 import { registerXaiUtilityProxy } from "../xai-utility-proxy";
+import { generationThrottle } from "../rate-limit";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
@@ -40,6 +41,9 @@ async function startServer() {
   // Configure body parser with larger size limit for file uploads
   app.use(express.json({ limit: "50mb" }));
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
+  // Abuse throttling for public generation endpoints (per-IP rate limit +
+  // global concurrency cap). Mounted before the proxies so it guards them.
+  app.use(generationThrottle);
   // OAuth callback under /api/oauth/callback
   registerOAuthRoutes(app);
   // Ollama API proxy (bypasses CORS for cloud/remote connections)

@@ -5,9 +5,109 @@
 // ============================================================
 
 import type { Express, Request, Response } from 'express';
+import { isIP } from 'node:net';
 
 const OLLAMA_CLOUD_URL = 'https://ollama.com';
 const DEFAULT_TIMEOUT = 120_000; // 2 minutes for long model responses
+
+/**
+ * Thrown when a client-supplied x-ollama-url points somewhere we refuse to
+ * proxy (internal hosts, link-local/metadata, non-http schemes). Carries a
+ * client-safe message; callers map it to HTTP 400.
+ */
+class TargetRejectedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'TargetRejectedError';
+  }
+}
+
+// Hosts the proxy is always allowed to reach, regardless of the SSRF guard.
+// The default Ollama cloud endpoint, plus an optional operator-configured
+// host from the environment (OLLAMA_URL / OLLAMA_HOST). Compared by hostname.
+function allowedHostnames(): Set<string> {
+  const allowed = new Set<string>();
+  const add = (raw: string | undefined) => {
+    if (!raw) return;
+    try {
+      // Accept bare host:port or a full URL.
+      const u = new URL(raw.includes('://') ? raw : `http://${raw}`);
+      if (u.hostname) allowed.add(u.hostname.toLowerCase());
+    } catch {
+      /* ignore unparseable env value */
+    }
+  };
+  add(OLLAMA_CLOUD_URL);
+  add(process.env.OLLAMA_URL);
+  add(process.env.OLLAMA_HOST);
+  return allowed;
+}
+
+// Reject IPs that resolve to the host itself, private ranges, or
+// link-local/cloud-metadata space. We only see the literal host string here
+// (no DNS resolution at this layer), so this blocks literal-IP SSRF; the
+// allow-list above is what gates hostnames.
+function isBlockedIp(host: string): boolean {
+  let ip = host;
+  // Strip IPv6 brackets and zone id.
+  if (ip.startsWith('[') && ip.endsWith(']')) ip = ip.slice(1, -1);
+  ip = ip.split('%')[0];
+
+  const kind = isIP(ip);
+  if (kind === 4) {
+    const parts = ip.split('.').map(n => parseInt(n, 10));
+    if (parts.length !== 4 || parts.some(n => Number.isNaN(n) || n < 0 || n > 255)) return true;
+    const [a, b] = parts;
+    if (a === 127) return true; // 127.0.0.0/8 loopback
+    if (a === 10) return true; // 10.0.0.0/8
+    if (a === 172 && b >= 16 && b <= 31) return true; // 172.16.0.0/12
+    if (a === 192 && b === 168) return true; // 192.168.0.0/16
+    if (a === 169 && b === 254) return true; // 169.254.0.0/16 link-local / metadata
+    if (a === 0) return true; // 0.0.0.0/8
+    return false;
+  }
+  if (kind === 6) {
+    const low = ip.toLowerCase();
+    if (low === '::1' || low === '::') return true; // loopback / unspecified
+    if (low.startsWith('fe80')) return true; // link-local
+    if (low.startsWith('fc') || low.startsWith('fd')) return true; // unique-local fc00::/7
+    // IPv4-mapped (::ffff:a.b.c.d) — re-check the embedded v4 address.
+    const mapped = /::ffff:(\d+\.\d+\.\d+\.\d+)$/i.exec(low);
+    if (mapped) return isBlockedIp(mapped[1]);
+    return false;
+  }
+  return false; // not an IP literal — hostname handling is the allow-list's job
+}
+
+/**
+ * Validate a fully-resolved target URL against the SSRF allow-list.
+ * Throws TargetRejectedError on anything we refuse to proxy.
+ */
+function assertTargetAllowed(baseUrl: string): void {
+  let url: URL;
+  try {
+    url = new URL(baseUrl);
+  } catch {
+    throw new TargetRejectedError('Invalid Ollama server URL.');
+  }
+
+  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
+    throw new TargetRejectedError('Only http and https Ollama URLs are allowed.');
+  }
+
+  const host = url.hostname.toLowerCase();
+
+  // Explicit hostname allow-list (cloud + operator-configured host).
+  if (allowedHostnames().has(host)) return;
+
+  // Block obvious internal hostnames and any private/loopback IP literal.
+  if (host === 'localhost' || host.endsWith('.localhost')) {
+    throw new TargetRejectedError('Refusing to proxy to an internal host.');
+  }
+  if (isBlockedIp(host)) {
+    throw new TargetRejectedError('Refusing to proxy to an internal or reserved address.');
+  }
+}
 
 /**
  * Register Ollama proxy routes on the Express app.
@@ -147,8 +247,18 @@ export function registerOllamaProxy(app: Express) {
 
   // Connection test
   app.get('/api/ollama/health', async (req: Request, res: Response) => {
+    let baseUrl: string;
+    let headers: Record<string, string>;
     try {
-      const { baseUrl, headers } = resolveTarget(req);
+      ({ baseUrl, headers } = resolveTarget(req));
+    } catch (err) {
+      // Rejected target (SSRF guard) or malformed URL — report as not connected
+      // rather than re-resolving (which would re-throw).
+      handleProxyError(err, res);
+      return;
+    }
+
+    try {
       const response = await fetch(`${baseUrl}/api/tags`, {
         headers,
         signal: AbortSignal.timeout(8_000),
@@ -163,7 +273,7 @@ export function registerOllamaProxy(app: Express) {
       res.json({
         connected: false,
         status: 0,
-        url: resolveTarget(req).baseUrl,
+        url: baseUrl,
       });
     }
   });
@@ -185,9 +295,12 @@ function resolveTarget(req: Request): { baseUrl: string; headers: Record<string,
 
   let baseUrl: string;
   if (!rawUrl || rawUrl === 'cloud' || rawUrl === OLLAMA_CLOUD_URL) {
+    // No client header (or explicit cloud): keep the default behavior.
     baseUrl = OLLAMA_CLOUD_URL;
   } else {
     baseUrl = rawUrl.replace(/\/$/, '');
+    // A client-supplied target must pass the SSRF allow-list before use.
+    assertTargetAllowed(baseUrl);
   }
 
   const headers: Record<string, string> = {};
@@ -202,6 +315,11 @@ function resolveTarget(req: Request): { baseUrl: string; headers: Record<string,
  * Handle proxy errors with user-friendly messages.
  */
 function handleProxyError(err: unknown, res: Response) {
+  if (err instanceof TargetRejectedError) {
+    res.status(400).json({ error: 'Invalid Ollama server', details: err.message });
+    return;
+  }
+
   const message = err instanceof Error ? err.message : 'Unknown proxy error';
 
   if (message.includes('timeout') || message.includes('TimeoutError')) {
