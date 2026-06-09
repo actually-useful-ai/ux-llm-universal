@@ -50,6 +50,12 @@ const ROUTE_TITLES: Record<string, string> = {
   '/batches': 'Batches',
   '/showcase': 'Showcase',
   '/share': 'Share',
+  '/images': 'Images',
+  '/images/edit': 'Image Edit',
+  '/videos/edit': 'Video Edit',
+  '/rewrites': 'Rewrites',
+  '/api-key': 'API Key',
+  '/compare': 'Compare',
 };
 
 interface Props {

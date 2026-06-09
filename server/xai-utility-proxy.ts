@@ -205,6 +205,27 @@ export function registerXaiUtilityProxy(app: Express) {
     }
   });
 
+  // API key introspection (GET /v1/api-key). Stage 4 of the universal merge:
+  // media's trpc xai.apiKeyInfo lands here because it is utility, not generation.
+  app.get('/api/xai/api-key', async (_req: Request, res: Response) => {
+    try {
+      const apiRes = await fetch(`${XAI_BASE}/v1/api-key`, {
+        headers: { Authorization: `Bearer ${getXaiApiKey()}` },
+        signal: AbortSignal.timeout(15000),
+      });
+      const responseText = await apiRes.text();
+
+      if (!apiRes.ok) {
+        return res.status(apiRes.status).json({ error: responseText || 'Failed to fetch API key info' });
+      }
+
+      return res.json(JSON.parse(responseText));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to fetch API key info';
+      return res.status(500).json({ error: message });
+    }
+  });
+
   app.post('/api/xai/batches/:batchId/cancel', async (req: Request, res: Response) => {
     try {
       const apiRes = await fetch(`${XAI_BASE}/v1/batches/${encodeURIComponent(req.params.batchId)}/cancel`, {

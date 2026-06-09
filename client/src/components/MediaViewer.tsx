@@ -7,7 +7,7 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { downloadMedia } from '@/lib/download';
 import {
-  ChevronLeft, ChevronRight, Download, Star, X,
+  ChevronLeft, ChevronRight, Download, Paintbrush, Star, X,
   ZoomIn, ZoomOut, RotateCcw, Info, Maximize2,
 } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -30,10 +30,11 @@ interface MediaViewerProps {
   onClose: () => void;
   onFavorite?: (item: MediaItem) => void;
   isFavorited?: (item: MediaItem) => boolean;
+  onSendToEdit?: (item: MediaItem) => void;
 }
 
 export function MediaViewer({
-  items, initialIndex, open, onClose, onFavorite, isFavorited,
+  items, initialIndex, open, onClose, onFavorite, isFavorited, onSendToEdit,
 }: MediaViewerProps) {
   const [index, setIndex] = useState(initialIndex);
   const [zoom, setZoom] = useState(1);
@@ -197,6 +198,16 @@ export function MediaViewer({
                 {zoom > 1 && (
                   <Button variant="ghost" size="icon" className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/10" onClick={resetZoom}>
                     <RotateCcw className="h-4 w-4" />
+                  </Button>
+                )}
+                {onSendToEdit && (
+                  <Button
+                    variant="ghost" size="icon"
+                    className="h-8 w-8 text-white/80 hover:text-white hover:bg-white/10"
+                    onClick={() => onSendToEdit(item)}
+                    title="Send to Edit"
+                  >
+                    <Paintbrush className="h-4 w-4" />
                   </Button>
                 )}
               </>

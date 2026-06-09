@@ -9,6 +9,7 @@ import {
   MessageCircle, Sparkles, Shield, LayoutGrid,
   Mic, Star, BookOpen, Cpu, BarChart3, Hash, Layers, Wrench, Share2, Sliders,
   Plus, Search, ArrowRight,
+  Image, Paintbrush, Film, RefreshCw, Columns2, Key,
 } from 'lucide-react';
 import {
   CommandDialog,
@@ -102,6 +103,31 @@ export default function CommandPalette({ open, onOpenChange }: Props) {
           <CommandItem onSelect={() => runCommand(() => navigate('/showcase'))}>
             <Share2 className="w-4 h-4" />
             <span>Go to Showcase</span>
+          </CommandItem>
+          {/* Stage 4 universal merge — surfaces ported from ux-llm-media */}
+          <CommandItem onSelect={() => runCommand(() => navigate('/images'))}>
+            <Image className="w-4 h-4" />
+            <span>Go to Images</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/images/edit'))}>
+            <Paintbrush className="w-4 h-4" />
+            <span>Go to Image Edit</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/videos/edit'))}>
+            <Film className="w-4 h-4" />
+            <span>Go to Video Edit</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/rewrites'))}>
+            <RefreshCw className="w-4 h-4" />
+            <span>Go to Rewrites</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/compare'))}>
+            <Columns2 className="w-4 h-4" />
+            <span>Go to Compare</span>
+          </CommandItem>
+          <CommandItem onSelect={() => runCommand(() => navigate('/api-key'))}>
+            <Key className="w-4 h-4" />
+            <span>Go to API Key</span>
           </CommandItem>
         </CommandGroup>
 

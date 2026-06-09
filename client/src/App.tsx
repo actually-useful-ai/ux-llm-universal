@@ -31,6 +31,13 @@ const BatchesPage = lazy(() => import("./pages/BatchesPage"));
 const ResearchToolsPage = lazy(() => import("./pages/ResearchToolsPage"));
 const ShowcasePage = lazy(() => import("./pages/ShowcasePage"));
 const SharePage = lazy(() => import("./pages/SharePage"));
+// Stage 4 universal merge — surfaces ported from ux-llm-media
+const ImageGenPage = lazy(() => import("./pages/ImageGenPage"));
+const ImageEditPage = lazy(() => import("./pages/ImageEditPage"));
+const VideoEditPage = lazy(() => import("./pages/VideoEditPage"));
+const RewriteHistoryPage = lazy(() => import("./pages/RewriteHistoryPage"));
+const ApiKeyPage = lazy(() => import("./pages/ApiKeyPage"));
+const ComparisonPage = lazy(() => import("./pages/ComparisonPage"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 const BASE = import.meta.env.BASE_URL.replace(/\/$/, "") || "";
@@ -66,6 +73,13 @@ function AppRouter() {
             <Route path="/share/:token" component={SharePage} />
             <Route path="/gallery/collections" component={CollectionsPage} />
             <Route path="/gallery" component={GalleryPage} />
+            {/* Stage 4 universal merge — media generation/editing surfaces */}
+            <Route path="/images/edit" component={ImageEditPage} />
+            <Route path="/images" component={ImageGenPage} />
+            <Route path="/videos/edit" component={VideoEditPage} />
+            <Route path="/rewrites" component={RewriteHistoryPage} />
+            <Route path="/api-key" component={ApiKeyPage} />
+            <Route path="/compare" component={ComparisonPage} />
             <Route component={NotFound} />
           </Switch>
         </Suspense>

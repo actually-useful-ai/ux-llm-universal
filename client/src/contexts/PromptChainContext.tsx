@@ -7,7 +7,7 @@
  */
 import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
 
-export type ChainTarget = "image_edit" | "video_gen" | "tts";
+export type ChainTarget = "image_edit" | "video_gen" | "video_edit" | "tts";
 
 type ChainPayload = {
   url: string;
