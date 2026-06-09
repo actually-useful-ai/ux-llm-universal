@@ -252,6 +252,28 @@ WHERE NOT EXISTS (
     AND r.`originalPrompt` = mr.`originalPrompt`
 );
 
+-- 3f-vi. media saved_prompts direct copy (ADDED POST-VALIDATION per review:
+-- originally flagged out-of-scope by blueprint 3f, approved for import
+-- 2026-06-09). userId remapped via openId; media category varchar(32) fits
+-- glm varchar(64); isRewrite + updatedAt columns exist in glm via the Stage-3
+-- DDL above. Re-run guard key userId + category + name + createdAt verified
+-- unique against current media data (100 rows, 0 duplicate groups,
+-- 0 unmatched users).
+INSERT INTO `saved_prompts`
+  (`userId`, `category`, `name`, `prompt`, `useCount`, `isRewrite`, `createdAt`, `updatedAt`)
+SELECT u.`id`, msp.`category`, msp.`name`, msp.`prompt`, msp.`useCount`,
+       msp.`isRewrite`, msp.`createdAt`, msp.`updatedAt`
+FROM `ux_llm_media`.`saved_prompts` msp
+JOIN `ux_llm_media`.`users` mu ON mu.`id` = msp.`userId`
+JOIN `users` u ON u.`openId` = mu.`openId`
+WHERE NOT EXISTS (
+  SELECT 1 FROM `saved_prompts` sp
+  WHERE sp.`userId` = u.`id`
+    AND sp.`category` = msp.`category`
+    AND sp.`name` = msp.`name`
+    AND sp.`createdAt` = msp.`createdAt`
+);
+
 -- ── 3g. Recompute collections.itemCount ─────────────────────────────────────
 
 UPDATE `collections` c
@@ -262,9 +284,7 @@ SET c.`itemCount` = (
 -- ── End of Stage 3 migration ─────────────────────────────────────────────────
 -- Validation queries (3h) live in the runbook; NOT executed by this script.
 -- NOTE deliberately out of scope per blueprint 3f (flagged for Luke):
---   * ux_llm_media.saved_prompts (100 rows, all isRewrite=1) is NOT imported —
---     blueprint Stage 3f lists only users / cached_content / favorites /
---     share_links / rewrite_rules. Import later with the same openId-remap
---     pattern if those auto-rewrite prompts should survive cutover.
+--   * ux_llm_media.saved_prompts: originally flagged here as not imported;
+--     approved post-review 2026-06-09 and now handled by section 3f-vi above.
 --   * ux_llm_media.usage_log and export_presets are empty (0 rows) — nothing
 --     to migrate.
