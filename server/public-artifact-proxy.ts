@@ -1,11 +1,12 @@
 import type { Express, Request, Response } from 'express';
-import { desc, eq } from 'drizzle-orm';
-import { getDb } from './db';
-import { artifacts } from '../drizzle/schema';
+import { eq } from 'drizzle-orm';
+import { getDb, getShowcaseItems } from './db';
+import { cachedContent } from '../drizzle/schema';
 
-function encodeToken(id: number): string {
-  return `art_${id.toString(36)}`;
-}
+// Stage 5b: these public routes now read the unified `cached_content` store.
+// `art_<base36 id>` tokens decode to a cachedContent id (ids are unified across
+// the merge), and the showcase reuses the media sharing router's showcase query
+// (share_links opt-in) rather than re-deriving "showcase" from a favorite flag.
 
 function decodeToken(token: string): number | null {
   const match = /^art_([0-9a-z]+)$/i.exec(token.trim());
@@ -14,11 +15,31 @@ function decodeToken(token: string): number | null {
   return Number.isFinite(id) ? id : null;
 }
 
+// Map a cachedContent row into the `content` shape SharePage expects.
+function toShareContent(row: typeof cachedContent.$inferSelect) {
+  let meta: unknown = row.metadata;
+  let provider: string | null = null;
+  if (meta && typeof meta === 'object') {
+    const m = meta as Record<string, unknown>;
+    if (typeof m.provider === 'string') provider = m.provider;
+  }
+  return {
+    id: row.id,
+    type: row.type,
+    contentUrl: row.contentUrl,
+    prompt: row.prompt,
+    model: row.model,
+    provider,
+    metadata: meta,
+    title: row.title ?? row.prompt,
+  };
+}
+
 export function registerPublicArtifactProxy(app: Express) {
   app.get('/api/share/:token', async (req: Request, res: Response) => {
     try {
-      const artifactId = decodeToken(req.params.token);
-      if (!artifactId) {
+      const contentId = decodeToken(req.params.token);
+      if (!contentId) {
         return res.status(400).json({ error: 'Invalid share token' });
       }
 
@@ -27,27 +48,18 @@ export function registerPublicArtifactProxy(app: Express) {
         return res.status(503).json({ error: 'Database not available' });
       }
 
-      const rows = await db.select().from(artifacts).where(eq(artifacts.id, artifactId)).limit(1);
-      const artifact = rows[0];
+      const rows = await db.select().from(cachedContent).where(eq(cachedContent.id, contentId)).limit(1);
+      const row = rows[0];
 
-      if (!artifact) {
+      if (!row) {
         return res.status(404).json({ error: 'Shared artifact not found' });
       }
 
       return res.json({
         token: req.params.token,
         viewCount: 0,
-        sharedAt: artifact.createdAt,
-        content: {
-          id: artifact.id,
-          type: artifact.type,
-          contentUrl: artifact.url,
-          prompt: artifact.prompt,
-          model: artifact.model,
-          provider: artifact.provider,
-          metadata: artifact.metadata,
-          title: artifact.prompt,
-        },
+        sharedAt: row.createdAt,
+        content: toShareContent(row),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch shared artifact';
@@ -58,34 +70,31 @@ export function registerPublicArtifactProxy(app: Express) {
   app.get('/api/showcase', async (req: Request, res: Response) => {
     try {
       const limit = Number.parseInt(String(req.query.limit || '24'), 10);
-      const db = await getDb();
-      if (!db) {
-        return res.status(503).json({ error: 'Database not available' });
-      }
-
-      const rows = await db.select()
-        .from(artifacts)
-        .where(eq(artifacts.isFavorite, 1))
-        .orderBy(desc(artifacts.createdAt))
-        .limit(Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 100) : 24);
+      const safeLimit = Number.isFinite(limit) ? Math.min(Math.max(limit, 1), 100) : 24;
+      const items = await getShowcaseItems(safeLimit);
 
       return res.json({
-        items: rows.map(artifact => ({
-          id: artifact.id,
-          token: encodeToken(artifact.id),
-          viewCount: 0,
-          sharedAt: artifact.createdAt,
-          content: {
-            id: artifact.id,
-            type: artifact.type,
-            contentUrl: artifact.url,
-            prompt: artifact.prompt,
-            model: artifact.model,
-            provider: artifact.provider,
-            metadata: artifact.metadata,
-            title: artifact.prompt,
-          },
-        })),
+        items: items.map(item => {
+          let provider: string | null = null;
+          if (item.metadata && typeof item.metadata === 'object') {
+            const m = item.metadata as Record<string, unknown>;
+            if (typeof m.provider === 'string') provider = m.provider;
+          }
+          return {
+            token: item.token,
+            viewCount: item.viewCount,
+            sharedAt: item.sharedAt,
+            content: {
+              type: item.type,
+              contentUrl: item.contentUrl,
+              prompt: item.prompt,
+              model: item.model,
+              provider,
+              metadata: item.metadata,
+              title: item.title ?? item.prompt,
+            },
+          };
+        }),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Failed to fetch showcase artifacts';
