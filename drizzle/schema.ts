@@ -1,4 +1,4 @@
-import { int, json, mysqlEnum, mysqlTable, text, timestamp, uniqueIndex, varchar } from "drizzle-orm/mysql-core";
+import { int, json, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -41,24 +41,6 @@ export const cachedContent = mysqlTable("cached_content", {
 export type CachedContent = typeof cachedContent.$inferSelect;
 export type InsertCachedContent = typeof cachedContent.$inferInsert;
 
-// ── Artifacts ───────────────────────────────────────────────────
-// LEGACY — remove after Stage 3 data migration (superseded by cachedContent)
-export const artifacts = mysqlTable("artifacts", {
-  id: int("id").autoincrement().primaryKey(),
-  userId: int("userId").notNull(),
-  type: mysqlEnum("type", ["image", "video", "audio", "document", "report"]).notNull(),
-  url: text("url").notNull(),
-  prompt: text("prompt"),
-  provider: varchar("provider", { length: 64 }),
-  model: varchar("model", { length: 128 }),
-  metadata: text("metadata"), // JSON string
-  isFavorite: int("isFavorite").default(0).notNull(),
-  createdAt: timestamp("createdAt").defaultNow().notNull(),
-});
-
-export type Artifact = typeof artifacts.$inferSelect;
-export type InsertArtifact = typeof artifacts.$inferInsert;
-
 // ── Collections ─────────────────────────────────────────────────
 export const collections = mysqlTable("collections", {
   id: int("id").autoincrement().primaryKey(),
@@ -86,15 +68,6 @@ export const collectionItems = mysqlTable("collection_items", {
 
 export type CollectionItem = typeof collectionItems.$inferSelect;
 export type InsertCollectionItem = typeof collectionItems.$inferInsert;
-
-// LEGACY — remove after Stage 3 data migration (superseded by collectionItems)
-export const collectionArtifacts = mysqlTable("collection_artifacts", {
-  id: int("id").autoincrement().primaryKey(),
-  collectionId: int("collectionId").notNull(),
-  artifactId: int("artifactId").notNull(),
-}, (table) => [
-  uniqueIndex("uniq_collection_artifact").on(table.collectionId, table.artifactId),
-]);
 
 // ── Research Tasks ──────────────────────────────────────────────
 export const researchTasks = mysqlTable("research_tasks", {
