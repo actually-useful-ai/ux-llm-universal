@@ -62,7 +62,7 @@ const PROVIDER_CAPABILITIES: Record<string, ProviderCapability[]> = {
   anthropic: ['chat', 'vision'],
   openai: ['chat', 'vision', 'image_generation', 'video_generation', 'tts', 'stt', 'embeddings'],
   xai: ['chat', 'vision', 'image_generation', 'video_generation', 'tts'],
-  gemini: ['chat', 'vision', 'image_generation', 'tts', 'embeddings'],
+  gemini: ['chat', 'vision', 'image_generation', 'video_generation', 'tts', 'embeddings'],
   mistral: ['chat', 'vision', 'embeddings'],
   cohere: ['chat', 'embeddings'],
   perplexity: ['chat'],
@@ -133,14 +133,19 @@ const STT_DEFAULTS: Record<string, string> = {
 };
 
 // Video generation models per provider
+// sora-2 sunsets 2026-09-24; Veo (gemini) is the successor path. Veo 3.1 is
+// still published under -preview ids (confirmed against the live models list
+// 2026-06-10 — no -001 GA id exists yet).
 const VIDEO_GEN_MODELS: Record<string, string[]> = {
   xai: ['grok-imagine-video'],
   openai: ['sora-2', 'sora-2-pro'],
+  gemini: ['veo-3.1-generate-preview', 'veo-3.1-fast-generate-preview', 'veo-3.0-generate-001'],
 };
 
 const VIDEO_GEN_DEFAULTS: Record<string, string> = {
   xai: 'grok-imagine-video',
   openai: 'sora-2',
+  gemini: 'veo-3.1-generate-preview',
 };
 
 // --- Provider API endpoints for direct tool-calling ---
@@ -1364,6 +1369,38 @@ export function registerDreamerProxy(app: Express) {
 
         const data = await apiRes.json() as { id?: string };
         res.json({ requestId: data.id, provider: 'openai' });
+      } else if (provider === 'gemini') {
+        // Veo via the Gemini API: predictLongRunning → operation name → poll.
+        // Clamp to Veo's accepted values — switching providers can carry over
+        // xai-only settings (duration 10, aspect 1:1) that Veo 400s on.
+        const parameters: Record<string, unknown> = {};
+        if (aspect_ratio === '16:9' || aspect_ratio === '9:16') parameters.aspectRatio = aspect_ratio;
+        if (resolution === '720p' || resolution === '1080p') parameters.resolution = resolution;
+        const secs = Number(duration);
+        if (Number.isFinite(secs) && secs > 0) {
+          parameters.durationSeconds = [4, 6, 8].reduce((best, v) =>
+            Math.abs(v - secs) < Math.abs(best - secs) ? v : best, 8);
+        }
+
+        const veoModel = model || VIDEO_GEN_DEFAULTS.gemini;
+        const apiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(veoModel)}:predictLongRunning`,
+          {
+            method: 'POST',
+            headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ instances: [{ prompt }], parameters }),
+          }
+        );
+
+        if (!apiRes.ok) {
+          const errData = await apiRes.json().catch(() => ({})) as { error?: { message?: string } };
+          throw new Error(errData.error?.message || `Veo video error: ${apiRes.status}`);
+        }
+
+        // The operation name (models/.../operations/...) is the id we poll with.
+        const data = await apiRes.json() as { name?: string };
+        if (!data.name) throw new Error('Veo did not return an operation name');
+        res.json({ requestId: data.name, provider: 'gemini' });
       } else {
         res.status(400).json({ error: `Video generation not supported for provider: ${provider}` });
       }
@@ -1501,6 +1538,69 @@ export function registerDreamerProxy(app: Express) {
         } else {
           // queued, in_progress → map to 'pending' for client consistency
           res.json({ status: 'pending', requestId });
+        }
+      } else if (provider === 'gemini') {
+        // requestId is a Veo operation name (models/.../operations/...).
+        // Slashes are path components — validate instead of URL-encoding.
+        if (!/^[\w.-]+(\/[\w.-]+)*$/.test(requestId)) {
+          res.status(400).json({ error: 'Invalid operation name' });
+          return;
+        }
+        const apiRes = await fetch(
+          `https://generativelanguage.googleapis.com/v1beta/${requestId}`,
+          { headers: { 'x-goog-api-key': apiKey } }
+        );
+
+        if (!apiRes.ok) {
+          const errData = await apiRes.json().catch(() => ({})) as { error?: { message?: string } };
+          throw new Error(errData.error?.message || `Status check failed: ${apiRes.status}`);
+        }
+
+        const data = await apiRes.json() as {
+          done?: boolean;
+          error?: { message?: string };
+          response?: {
+            generateVideoResponse?: {
+              generatedSamples?: Array<{ video?: { uri?: string } }>;
+            };
+          };
+        };
+
+        if (!data.done) {
+          res.json({ status: 'pending', requestId });
+          return;
+        }
+        if (data.error) {
+          res.json({ status: 'failed', error: data.error.message || 'Veo generation failed', requestId });
+          return;
+        }
+
+        const videoUri = data.response?.generateVideoResponse?.generatedSamples?.[0]?.video?.uri;
+        if (!videoUri) {
+          res.json({ status: 'failed', error: 'Veo finished without a video URI', requestId });
+          return;
+        }
+
+        // The file URI needs the API key to download — fetch the bytes
+        // server-side and persist to a same-origin public URL, mirroring
+        // the openai branch.
+        try {
+          const videoRes = await fetch(videoUri, { headers: { 'x-goog-api-key': apiKey } });
+          if (videoRes.ok) {
+            const videoBuffer = Buffer.from(await videoRes.arrayBuffer());
+            try {
+              const persisted = await persistMediaFromBuffer(videoBuffer, { kind: 'video', provider: 'gemini', ext: 'mp4' });
+              res.json({ status: 'done', video: { url: persisted.publicUrl }, requestId });
+            } catch (e) {
+              console.warn('[persist] veo video persist failed, falling back to data URL:', (e as Error).message);
+              const videoDataUrl = `data:video/mp4;base64,${videoBuffer.toString('base64')}`;
+              res.json({ status: 'done', video: { url: videoDataUrl }, requestId });
+            }
+          } else {
+            res.json({ status: 'failed', error: `Veo video download failed: ${videoRes.status}`, requestId });
+          }
+        } catch (e) {
+          res.json({ status: 'failed', error: `Veo video download failed: ${(e as Error).message}`, requestId });
         }
       } else {
         res.status(400).json({ error: `Unknown provider: ${provider}` });

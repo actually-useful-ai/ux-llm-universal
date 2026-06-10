@@ -24,6 +24,9 @@ const ASPECT_RATIOS = ['16:9', '9:16', '1:1', '4:3', '3:4'] as const;
 const RESOLUTIONS = ['auto', '720p', '1080p'] as const;
 const XAI_DURATIONS = [4, 6, 8, 10] as const;
 const SORA_DURATIONS = [5, 10, 15, 20] as const;
+// Veo (gemini) constraints per the Gemini API docs
+const VEO_ASPECT_RATIOS = ['16:9', '9:16'] as const;
+const VEO_DURATIONS = [4, 6, 8] as const;
 const SORA_SIZES = ['1280x720', '720x1280', '1920x1080', '1080x1920'] as const;
 
 function ElapsedTimer({ startTime }: { startTime: number }) {
@@ -146,7 +149,7 @@ export default function VideoGenPanel() {
           model: selectedModel || undefined,
         };
 
-        if (selectedProvider === 'xai') {
+        if (selectedProvider === 'xai' || selectedProvider === 'gemini') {
           body.duration = duration;
           if (resolution !== 'auto') body.resolution = resolution;
           body.aspect_ratio = aspectRatio;
@@ -236,6 +239,7 @@ export default function VideoGenPanel() {
 
   const noProviders = videoProviders.length === 0;
   const isXAI = selectedProvider === 'xai';
+  const isGemini = selectedProvider === 'gemini';
 
   return (
     <div className="flex-1 flex flex-col min-w-0">
@@ -382,19 +386,19 @@ export default function VideoGenPanel() {
               </Select>
 
               {/* Duration */}
-              <Select value={String(isXAI ? duration : soraDuration)} onValueChange={v => isXAI ? setDuration(Number(v)) : setSoraDuration(Number(v))}>
+              <Select value={String(isXAI || isGemini ? duration : soraDuration)} onValueChange={v => (isXAI || isGemini) ? setDuration(Number(v)) : setSoraDuration(Number(v))}>
                 <SelectTrigger className="h-7 text-xs border-border/60 bg-transparent w-auto min-w-[70px]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {(isXAI ? XAI_DURATIONS : SORA_DURATIONS).map(d => (
+                  {(isXAI ? XAI_DURATIONS : isGemini ? VEO_DURATIONS : SORA_DURATIONS).map(d => (
                     <SelectItem key={d} value={String(d)}>{d}s</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
 
-              {/* xAI-specific: resolution + aspect ratio */}
-              {isXAI && (
+              {/* xAI/Veo: resolution + aspect ratio */}
+              {(isXAI || isGemini) && (
                 <>
                   <Select value={resolution} onValueChange={setResolution}>
                     <SelectTrigger className="h-7 text-xs border-border/60 bg-transparent w-auto min-w-[70px]">
@@ -408,7 +412,7 @@ export default function VideoGenPanel() {
                   </Select>
 
                   <div className="flex items-center gap-0.5">
-                    {ASPECT_RATIOS.map(ar => (
+                    {(isGemini ? VEO_ASPECT_RATIOS : ASPECT_RATIOS).map(ar => (
                       <button
                         key={ar}
                         onClick={() => setAspectRatio(ar)}
