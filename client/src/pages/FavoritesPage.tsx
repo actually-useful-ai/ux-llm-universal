@@ -7,6 +7,7 @@ import CollectionPickerDialog from '@/components/CollectionPickerDialog';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
 import { useArtifacts, type ArtifactType } from '@/contexts/ArtifactContext';
 import { artifactSharePath } from '@/lib/share';
+import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
 const TYPE_FILTERS: { id: ArtifactType | 'all'; label: string; icon: typeof LayoutGrid }[] = [
@@ -63,10 +64,19 @@ export default function FavoritesPage() {
     }
   };
 
+  const createShare = trpc.sharing.create.useMutation();
+
+  // Persisted share-link record; stateless art_* fallback (still resolved
+  // server-side) if the mutation fails.
   const copyShareLink = async (serverId?: number) => {
     if (!serverId) return;
-    const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}${artifactSharePath(serverId)}`;
-    await navigator.clipboard.writeText(url);
+    const base = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}`;
+    try {
+      const { token } = await createShare.mutateAsync({ cachedContentId: serverId });
+      await navigator.clipboard.writeText(`${base}/share/${token}`);
+    } catch {
+      await navigator.clipboard.writeText(`${base}${artifactSharePath(serverId)}`);
+    }
     toast.success('Share link copied');
   };
 

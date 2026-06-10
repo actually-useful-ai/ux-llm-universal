@@ -7,7 +7,7 @@ import { useState, useMemo } from 'react';
 import { useLocation } from 'wouter';
 import {
   LayoutGrid, Image as ImageIcon, Video, AudioLines,
-  FileText, Star, Filter, Search, FolderOpen, FolderPlus, Share2,
+  FileText, Star, Filter, Search, FolderOpen, FolderPlus, Share2, Globe,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,6 +18,7 @@ import CollectionPickerDialog from '@/components/CollectionPickerDialog';
 import { useArtifacts, type ArtifactType } from '@/contexts/ArtifactContext';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
 import { artifactSharePath } from '@/lib/share';
+import { trpc } from '@/lib/trpc';
 import { cn } from '@/lib/utils';
 
 const TYPE_FILTERS: { id: ArtifactType | 'all'; label: string; icon: typeof ImageIcon }[] = [
@@ -39,11 +40,25 @@ function GalleryContent() {
   const [collectionArtifactId, setCollectionArtifactId] = useState<number | null>(null);
   const [collectionArtifactLabel, setCollectionArtifactLabel] = useState<string>('');
 
-  const copyShareLink = async (serverId?: number) => {
+  const createShare = trpc.sharing.create.useMutation();
+
+  // Mint a persisted share-link record (view counts, expiry, showcase opt-in).
+  // Links copied before 2026-06-10 used stateless art_* tokens; the server
+  // still resolves those, and we fall back to one if the mutation fails.
+  const copyShareLink = async (serverId?: number, showcase = false) => {
     if (!serverId) return;
-    const url = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}${artifactSharePath(serverId)}`;
-    await navigator.clipboard.writeText(url);
-    toast.success('Share link copied');
+    const base = `${window.location.origin}${import.meta.env.BASE_URL.replace(/\/$/, '')}`;
+    try {
+      const { token } = await createShare.mutateAsync({
+        cachedContentId: serverId,
+        isShowcase: showcase,
+      });
+      await navigator.clipboard.writeText(`${base}/share/${token}`);
+      toast.success(showcase ? 'Added to showcase — link copied' : 'Share link copied');
+    } catch {
+      await navigator.clipboard.writeText(`${base}${artifactSharePath(serverId)}`);
+      toast.success('Share link copied');
+    }
   };
 
   const filtered = useMemo(() => {
@@ -239,8 +254,22 @@ function GalleryContent() {
                         }}
                         className="h-6 w-6 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 transition-colors"
                         disabled={!artifact.serverId}
+                        aria-label="Copy share link"
+                        title="Copy share link"
                       >
                         <Share2 className="w-3 h-3 text-white/80" />
+                      </button>
+                      <button
+                        onClick={e => {
+                          e.stopPropagation();
+                          void copyShareLink(artifact.serverId, true);
+                        }}
+                        className="h-6 w-6 flex items-center justify-center rounded-full bg-black/50 hover:bg-black/70 transition-colors"
+                        disabled={!artifact.serverId}
+                        aria-label="Add to public showcase"
+                        title="Add to public showcase"
+                      >
+                        <Globe className="w-3 h-3 text-white/80" />
                       </button>
                     </div>
                     {artifact.prompt && (
