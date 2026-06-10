@@ -128,3 +128,6 @@ SUGGESTIONS.md
 REPO_AUDIT.md
 *_STATUS.md
 .aider*
+
+# User-uploaded media served at /uploads (content, not code)
+uploads/
