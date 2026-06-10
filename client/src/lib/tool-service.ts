@@ -16,7 +16,7 @@ export interface ToolInfo {
   parameters: {
     type: string;
     required?: string[];
-    properties: Record<string, unknown>;
+    properties: Record<string, { type: string; description?: string; enum?: string[] }>;
   };
 }
 

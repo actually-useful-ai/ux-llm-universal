@@ -36,12 +36,21 @@ function startProxy(): Promise<{ url: string; close: () => void }> {
 
 describe("ollama-proxy", () => {
   let proxy: { url: string; close: () => void };
+  let savedOllamaHost: string | undefined;
 
   beforeEach(async () => {
+    // The SSRF guard blocks loopback targets unless they are the
+    // operator-configured host (OLLAMA_HOST/OLLAMA_URL). The mock upstream
+    // lives on 127.0.0.1, so opt it in the same way a real local Ollama
+    // deployment would be.
+    savedOllamaHost = process.env.OLLAMA_HOST;
+    process.env.OLLAMA_HOST = "127.0.0.1";
     proxy = await startProxy();
   });
 
   afterEach(() => {
+    if (savedOllamaHost === undefined) delete process.env.OLLAMA_HOST;
+    else process.env.OLLAMA_HOST = savedOllamaHost;
     proxy.close();
   });
 

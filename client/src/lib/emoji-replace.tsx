@@ -7,7 +7,7 @@
 import React from 'react';
 import {
   Newspaper, BookOpen, Search, Github, TrendingUp,
-  Cloud, Rocket, Globe, Youtube, GraduationCap,
+  Cloud, Rocket, Globe, GraduationCap,
   BarChart3, Archive, Wrench, Lightbulb, MessageCircle,
   Star, Heart, ThumbsUp, ThumbsDown, AlertTriangle,
   CheckCircle, XCircle, Clock, Zap, Flame,
@@ -68,7 +68,7 @@ const EMOJI_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
   '🎁': Gift, '🏆': Trophy, '🧭': Compass, '⚓': Anchor,
   '📧': Mail, '✉️': Mail, '📍': MapPin, '🏠': Home, '🏢': Home,
   '📄': FileText, '📝': FileText, '📋': FileText,
-  '🔗': Globe, '🌐': Globe,
+  '🔗': Globe,
   '🎮': Play, '▶️': Play, '⏸️': Pause, '⏹️': Square,
   '🔊': Volume2, '🎤': Mic, '⏰': Clock, '⏱️': Clock,
   '🔋': Battery, '📡': Wifi,
@@ -78,7 +78,7 @@ const EMOJI_ICON_MAP: Record<string, React.ComponentType<{ className?: string }>
   '🌲': TreePine, '🌸': Flower2, '🐛': Bug, '🐟': Fish, '🐦': Bird,
   '🌻': Flower2, '🍃': TreePine, '🌿': TreePine,
   // YouTube
-  '📺': Youtube, '🎥': Film,
+  '🎥': Film,
   // Archive
   '🗄️': Archive, '📦': Archive,
   // Academic

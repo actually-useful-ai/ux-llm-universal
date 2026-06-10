@@ -1034,7 +1034,7 @@ export function registerDreamerProxy(app: Express) {
           reader.releaseLock();
         } catch {
           try {
-            for await (const chunk of response.body as AsyncIterable<Uint8Array>) {
+            for await (const chunk of response.body as unknown as AsyncIterable<Uint8Array>) {
               res.write(typeof chunk === 'string' ? chunk : Buffer.from(chunk));
             }
           } catch { /* Client disconnected */ }
