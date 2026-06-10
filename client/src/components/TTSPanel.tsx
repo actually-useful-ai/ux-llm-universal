@@ -13,6 +13,7 @@ import { Slider } from '@/components/ui/slider';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useArtifacts } from '@/contexts/ArtifactContext';
 import { apiUrl } from '@/lib/api-base';
+import { PresetPicker } from '@/components/PresetPicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { cn } from '@/lib/utils';
 
@@ -122,6 +123,25 @@ export default function TTSPanel() {
       setSelectedVoice(config.defaultVoice);
       if (config.models?.length) setSelectedModel(config.models[0]);
     }
+  };
+
+  // ── Presets ─────────────────────────────────────────────────────
+  const getCurrentSettings = () => ({
+    provider: selectedProvider, voice: selectedVoice, model: selectedModel,
+    speed, codec, sampleRate, language,
+  });
+
+  // Provider first (it resets voice/model), then explicit keys override.
+  const applyPreset = (s: Record<string, unknown>) => {
+    if (typeof s.provider === 'string' && voiceConfig[s.provider]) {
+      handleProviderChange(s.provider);
+    }
+    if (typeof s.voice === 'string') setSelectedVoice(s.voice);
+    if (typeof s.model === 'string') setSelectedModel(s.model);
+    if (typeof s.speed === 'number') setSpeed(s.speed);
+    if (typeof s.codec === 'string') setCodec(s.codec);
+    if (typeof s.sampleRate === 'number') setSampleRate(s.sampleRate);
+    if (typeof s.language === 'string') setLanguage(s.language);
   };
 
   const insertSpeechTag = (tag: typeof SPEECH_TAGS[0]) => {
@@ -324,6 +344,8 @@ export default function TTSPanel() {
       {/* Input bar */}
       <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-3">
         <div className="max-w-3xl mx-auto space-y-2">
+          <PresetPicker feature="tts" getCurrentSettings={getCurrentSettings} onApply={applyPreset} />
+
           {/* Controls row */}
           <div className="flex items-center gap-2 flex-wrap">
             <Select value={selectedProvider} onValueChange={handleProviderChange}>

@@ -15,6 +15,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useJobs, type VideoJob, type Job } from '@/contexts/JobContext';
 import { useArtifacts } from '@/contexts/ArtifactContext';
 import { apiUrl } from '@/lib/api-base';
+import { PresetPicker } from '@/components/PresetPicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { v4 as uuidv4 } from 'uuid';
 import { cn } from '@/lib/utils';
@@ -104,6 +105,26 @@ export default function VideoGenPanel() {
     setSelectedProvider(id);
     const p = videoProviders.find((pr: any) => pr.id === id);
     setSelectedModel((p as any)?.videoGenDefault || (p as any)?.videoGenModels?.[0] || '');
+  };
+
+  // ── Presets ─────────────────────────────────────────────────────
+  const getCurrentSettings = () => ({
+    provider: selectedProvider, model: selectedModel, duration, resolution,
+    aspectRatio, soraSize, soraDuration, quantity,
+  });
+
+  // Provider first (it resets the model), then explicit keys override.
+  const applyPreset = (s: Record<string, unknown>) => {
+    if (typeof s.provider === 'string' && videoProviders.some((p: any) => p.id === s.provider)) {
+      handleProviderChange(s.provider);
+    }
+    if (typeof s.model === 'string') setSelectedModel(s.model);
+    if (typeof s.duration === 'number') setDuration(s.duration);
+    if (typeof s.resolution === 'string') setResolution(s.resolution);
+    if (typeof s.aspectRatio === 'string') setAspectRatio(s.aspectRatio);
+    if (typeof s.soraSize === 'string') setSoraSize(s.soraSize);
+    if (typeof s.soraDuration === 'number') setSoraDuration(s.soraDuration);
+    if (typeof s.quantity === 'number') setQuantity(s.quantity);
   };
 
   const handleGenerate = async () => {
@@ -334,6 +355,8 @@ export default function VideoGenPanel() {
       {!noProviders && (
         <div className="border-t border-border bg-background/80 backdrop-blur-sm px-4 py-3">
           <div className="max-w-3xl mx-auto space-y-2">
+            <PresetPicker feature="video_gen" getCurrentSettings={getCurrentSettings} onApply={applyPreset} />
+
             {/* Provider + model + settings */}
             <div className="flex items-center gap-2 flex-wrap">
               <Select value={selectedProvider} onValueChange={handleProviderChange}>

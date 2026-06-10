@@ -21,6 +21,7 @@ import { useJobs, type ImageJob } from '@/contexts/JobContext';
 import { useArtifacts } from '@/contexts/ArtifactContext';
 import { apiUrl } from '@/lib/api-base';
 import { MediaViewer, type MediaItem } from '@/components/MediaViewer';
+import { PresetPicker } from '@/components/PresetPicker';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -152,6 +153,29 @@ export default function ImageGenPanel() {
     setSelectedModel((p as any)?.imageGenDefault || (p as any)?.imageGenModels?.[0] || '');
     setSize('auto');
     setQuality('auto');
+  };
+
+  // ── Presets ─────────────────────────────────────────────────────
+  const getCurrentSettings = () => ({
+    provider: selectedProvider, model: selectedModel, quantity, size, quality, seed,
+    xaiAspectRatio, xaiResolution, openaiStyle, geminiAspectRatio, geminiNegativePrompt,
+  });
+
+  // Provider first (it resets model/size/quality), then explicit keys override.
+  const applyPreset = (s: Record<string, unknown>) => {
+    if (typeof s.provider === 'string' && imageProviders.some((p: any) => p.id === s.provider)) {
+      handleProviderChange(s.provider);
+    }
+    if (typeof s.model === 'string') setSelectedModel(s.model);
+    if (typeof s.quantity === 'number') setQuantity(s.quantity);
+    if (typeof s.size === 'string') setSize(s.size);
+    if (typeof s.quality === 'string') setQuality(s.quality);
+    if (typeof s.seed === 'string') setSeed(s.seed);
+    if (typeof s.xaiAspectRatio === 'string') setXaiAspectRatio(s.xaiAspectRatio);
+    if (typeof s.xaiResolution === 'string') setXaiResolution(s.xaiResolution);
+    if (s.openaiStyle === 'vivid' || s.openaiStyle === 'natural') setOpenaiStyle(s.openaiStyle);
+    if (typeof s.geminiAspectRatio === 'string') setGeminiAspectRatio(s.geminiAspectRatio);
+    if (typeof s.geminiNegativePrompt === 'string') setGeminiNegativePrompt(s.geminiNegativePrompt);
   };
 
   // ── Generation logic ────────────────────────────────────────────
@@ -345,6 +369,8 @@ export default function ImageGenPanel() {
       {/* ── Settings Panel (left side on desktop, top on mobile) ──── */}
       <div className="lg:w-72 shrink-0 border-b lg:border-b-0 lg:border-r border-border/30 bg-background/50 lg:overflow-y-auto">
         <div className="p-3 space-y-3">
+          <PresetPicker feature="image_gen" getCurrentSettings={getCurrentSettings} onApply={applyPreset} />
+
           {/* Provider + model */}
           <div className="space-y-1.5">
             <label className="text-[11px] font-medium text-muted-foreground">Provider</label>
